@@ -94,7 +94,11 @@ Saker som byggs nu men måste hänga ihop med senare delar. Uppdatera när någo
 
 - **v0.1 (prototyp, klar)**: simulering av flyg, passagerarflöden, bagage, avtal, ekonomi och händelser, med enkel rutgrafik.
   Simuleringen är testad och behålls. Rutgrafiken ersätts.
-- **Pågår**: kapitel 1 godkänt (`docs/KAPITEL-1.md`). Bygger grunden (steg A). Stilskiss v3 godkänd i stort (v1 och v2 sparade som `mockups/stilskiss-v1.html` och `-v2.html`) för tecknad 3D med golvläge (`mockups/stilskiss.html`,
+- **v0.2 (grunden för kapitel 1, `game/`)**: verklighetstroget plattupplägg, flyg enligt tidtabell (inflygning, landning, taxi,
+  turnaround, pushback, start), turnaround med personal och utrustning som kör ut, entreprenörer (torn, terminal, tankning,
+  catering, städ), förseningsorsaker, problem (manuellt, mekaniker eller personalen själva efter en stund), dagsrapport,
+  översikt och golvläge med Follow me-bil, sparning och export. **Inte än:** byggläge, uppdrag, personalhantering, köp och leasing.
+- **Nästa (steg B)**: byggläge (flytta och bygga gates, taxilinjer, depåer) och köp/leasing av utrustning och personal. (v1 och v2 sparade som `mockups/stilskiss-v1.html` och `-v2.html`) för tecknad 3D med golvläge (`mockups/stilskiss.html`,
   https://kimmen1993.github.io/skyhub/mockups/stilskiss.html). Väntar på Kimms omdöme om stil och känsla.
   Skissen är ritad helt i kod. Den riktiga versionen kan använda gratis modellpaket (CC0) för rikare figurer och fordon.
 

@@ -12,6 +12,8 @@ Alla HTML-filer är fullständiga dokument (doctype + meta). Ska något publicer
 måste de fyra första raderna (doctype/html/meta) tas bort först.
 
 ## Struktur
+- `game/` – **det riktiga spelet** (kapitel 1). `js/data.js` innehåll, `js/sim.js` kärna (ingen DOM/grafik),
+  `js/gfx.js` tecknade modeller, `js/world.js` statisk värld, `js/ui.js` DOM-paneler, `js/main.js` loop, aktörer, kamera, chefen.
 - `index.html` – startsida med länkar till alla testversioner.
 - `prototyp-v01/` – första prototypen (rutgrafik). Sim-kärnan där återanvänds.
 - `mockups/` – stilskisser.
@@ -21,7 +23,11 @@ måste de fyra första raderna (doctype/html/meta) tas bort först.
 - `prototyp-v01/js/render.js` – isometrisk Canvas 2D. Läser bara state.
 - `prototyp-v01/js/ui.js` – DOM-paneler. `prototyp-v01/js/main.js` – loop, input, sparning (localStorage + exportkod).
 
-## Testa kärnan utan webbläsare
+## Testa utan webbläsare
+- `./tools/run-gametest.sh` – spelets simulering i två speldagar.
+- `./tools/run-smoke.sh <sökväg till three.min.js r128>` – hela spelet med riktig three.js och fejkad webbläsare
+  (fångar krascher i grafik/UI-koden). Ladda ner three: https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js
+- Alla sidor behöver `[hidden] { display: none !important; }` i CSS (GitHub Pages har ingen reset).
 `./tools/run-simtest.sh` (använder macOS inbyggda jsc; node finns inte installerat).
 
 ## Riktning
