@@ -213,7 +213,8 @@
   }
 
   // ---------- kamera ----------
-  let yaw = 0, yawT = 0, dist = 16, ovDist = 270;
+  let yaw = 0, yawT = 0, dist = 16, ovDist = 270, pitch = 0.6, ovPitch = 0.7;
+  const clampP = (v, a, b) => Math.max(a, Math.min(b, v));
   const oc = V(10, 0, -45);
   const camPos = V(0, 0, 0), camLook = V(0, 0, 0);
   let modeK = 0;
@@ -300,7 +301,10 @@
         const k = ovDist / 700, fx = Math.sin(yaw), fz = Math.cos(yaw), rx = -Math.cos(yaw), rz = Math.sin(yaw);
         oc.x += -rx * dx * k + fx * dy * k; oc.z += -rz * dx * k + fz * dy * k;
         oc.x = Math.max(-300, Math.min(300, oc.x)); oc.z = Math.max(-160, Math.min(40, oc.z));
-      } else { yawT -= dx * 0.008; yaw = yawT; }
+      } else {
+        yawT -= dx * 0.008; yaw = yawT;
+        if (G.mode) ovPitch = clampP(ovPitch + dy * 0.004, 0.3, 1.45); else pitch = clampP(pitch + dy * 0.005, 0.1, 1.4);
+      }
     }
     drag.lx = e.clientX; drag.ly = e.clientY;
   });
@@ -384,7 +388,8 @@
     // kamera-vridning
     if (keys.has('q')) yawT += dt * 1.8;
     if (keys.has('e')) yawT -= dt * 1.8;
-    if (G.driving && Math.abs(carS.v) > 2 && !keys.has('q') && !keys.has('e') && !(drag && drag.moved)) { let d = carS.h - yawT; d = Math.atan2(Math.sin(d), Math.cos(d)); yawT += d * Math.min(1, dt * 1.5); }
+    if (keys.has('z') || keys.has('pageup')) { if (G.mode) ovPitch = clampP(ovPitch + dt * 0.9, 0.3, 1.45); else pitch = clampP(pitch + dt * 0.9, 0.1, 1.4); }
+    if (keys.has('x') || keys.has('pagedown')) { if (G.mode) ovPitch = clampP(ovPitch - dt * 0.9, 0.3, 1.45); else pitch = clampP(pitch - dt * 0.9, 0.1, 1.4); }
     yaw += (yawT - yaw) * Math.min(1, dt * 8);
     const fwd = V(Math.sin(yaw), 0, Math.cos(yaw)), right = V(-Math.cos(yaw), 0, Math.sin(yaw));
 
@@ -433,8 +438,10 @@
     // kamera
     modeK += ((G.mode ? 1 : 0) - modeK) * Math.min(1, dt * 3);
     const mp = me(), cd = G.driving ? dist * 1.35 : dist;
-    const floorPos = V(mp.x - fwd.x * cd, cd * 0.66 + 1, mp.z - fwd.z * cd), floorLook = V(mp.x + fwd.x * 2.5, 1.5, mp.z + fwd.z * 2.5);
-    const overPos = V(oc.x - fwd.x * ovDist * 0.78, ovDist * 0.62, oc.z - fwd.z * ovDist * 0.78);
+    const ch = Math.cos(pitch) * cd, cv = Math.sin(pitch) * cd;
+    const floorPos = V(mp.x - fwd.x * ch, cv + 1.2, mp.z - fwd.z * ch), floorLook = V(mp.x, 1.5, mp.z);
+    const oh = Math.cos(ovPitch) * ovDist, ov = Math.sin(ovPitch) * ovDist;
+    const overPos = V(oc.x - fwd.x * oh, ov, oc.z - fwd.z * oh);
     camPos.copy(floorPos).lerp(overPos, modeK); camLook.copy(floorLook).lerp(oc, modeK);
     camera.position.lerp(camPos, Math.min(1, dt * 7)); camera.lookAt(camLook);
     const cdist = camera.position.distanceTo(camLook); scene.fog.near = cdist + 120; scene.fog.far = cdist + 560;
@@ -452,9 +459,9 @@
     if (uiAcc > 0.25) {
       uiAcc = 0; ui.hud(); ui.panel(); ui.card();
       let help;
-      if (G.mode === 1) help = 'Översikt: dra för att flytta kartan · Q/E eller högerdra: vrid · klicka på ett plan för detaljer · klicka på marken för att hoppa ner';
-      else if (G.driving) help = 'Kör: W/S gas och broms · A/D styr · klicka på marken för att köra dit · <b>F</b> kliv ur';
-      else help = 'WASD eller klick: gå · <b>Shift</b> spring · Q/E eller dra: vrid · klicka på ett plan · <b>F</b> hjälp till' + (near(carS, 3.8) ? ' · <b>F</b> kliv in i bilen' : '');
+      if (G.mode === 1) help = 'Översikt: dra för att flytta kartan · högerdra eller Q/E och Z/X: vrid och luta · scrolla: zooma · klicka på ett plan eller på marken';
+      else if (G.driving) help = 'Kör: W/S gas och broms · A/D styr · dra: vrid och luta kameran · <b>F</b> kliv ur';
+      else help = 'WASD eller klick: gå · <b>Shift</b> spring · dra eller Q/E och Z/X: vrid och luta · scrolla: zooma · <b>F</b> hjälp till' + (near(carS, 3.8) ? ' · <b>F</b> kliv in i bilen' : '');
       ui.help(help);
       s.log.forEach((l) => { if (l.id > G.lastLog) { if (l.kind !== 'info') ui.toast(l); G.lastLog = l.id; } });
       if (s.report && s.report.n !== G.reportN) { G.reportN = s.report.n; ui.report(s.report); save(); }
