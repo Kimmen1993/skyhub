@@ -104,6 +104,15 @@ button { font: inherit; color: inherit; }
 .track .nowl { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--coral); }
 .track .stdl { position: absolute; top: -4px; bottom: -4px; width: 0; border-left: 2px dashed var(--ink); }
 
+/* tidtabell */
+#fids { left: calc(12px + env(safe-area-inset-left, 0px)); top: calc(150px + env(safe-area-inset-top, 0px)); width: 330px; max-height: calc(100% - 260px); overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 6px; z-index: 1; }
+#fids h3 { margin: 0; font: 700 15px var(--font-display); display: flex; justify-content: space-between; align-items: center; }
+.frow { display: grid; grid-template-columns: 46px 1fr auto; gap: 1px 8px; align-items: center; padding: 6px 8px; border: 2px solid var(--ink); border-radius: 10px; background: #fff; cursor: pointer; text-align: left; }
+.frow:hover, .frow.sel { background: #fff3c4; }
+.frow .tm { font: 700 15px var(--font-display); }
+.frow .cd { font-weight: 800; display: flex; gap: 6px; align-items: center; min-width: 0; font-size: 13px; }
+.frow .cd span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.frow .sb { grid-column: 2 / 4; color: var(--muted); font-size: 11.5px; font-weight: 700; }
 /* radio, hjälp, menyrad, minikarta */
 #radio { left: calc(12px + env(safe-area-inset-left, 0px)); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); padding: 7px 12px; display: flex; gap: 8px; align-items: center; font-weight: 800; font-size: 13px; max-width: min(420px, calc(50% - 260px)); transition: opacity 0.6s; }
 #radio em { font-style: normal; color: var(--blue); }
@@ -262,9 +271,11 @@ button { font: inherit; color: inherit; }
 <div id="alerts" class="fx"></div>
 <div id="flight" class="fx panel" hidden></div>
 <div id="radio" class="fx panel" hidden></div>
+<div id="fids" class="fx panel" hidden></div>
 <div id="help" class="fx"></div>
 <nav id="dock" class="fx panel" aria-label="Driftcentralen">
   <button type="button" data-dock="floor" aria-pressed="true"><svg class="ico"><use href="#i-floor"/></svg>Golvet</button>
+  <button type="button" data-fids="1" aria-pressed="false" id="fidsBtn"><svg class="ico"><use href="#i-clock"/></svg>Tidtabell</button>
   <button type="button" data-dock="gates" aria-pressed="false"><svg class="ico"><use href="#i-gate"/></svg>Gates<span class="bd" data-badge="gates" hidden></span></button>
   <button type="button" data-dock="staff" aria-pressed="false"><svg class="ico"><use href="#i-staff"/></svg>Personal<span class="bd" data-badge="staff" hidden></span></button>
   <button type="button" data-dock="equip" aria-pressed="false"><svg class="ico"><use href="#i-gear"/></svg>Utrustning<span class="bd" data-badge="equip" hidden></span></button>

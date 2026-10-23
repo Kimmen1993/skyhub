@@ -9,7 +9,7 @@
     set(v) { try { localStorage.setItem(SAVE_KEY, v); return true; } catch (e) { return false; } },
   };
 
-  const G = { s: null, speed: 1, mode: 0, opsOpen: false, opsTab: 'gates', selected: null, modalOpen: false, driving: false, lastLog: 0, reportN: -1 };
+  const G = { s: null, speed: 1, mode: 0, fidsOpen: false, opsOpen: false, opsTab: 'gates', selected: null, modalOpen: false, driving: false, lastLog: 0, reportN: -1 };
   const ui = SH.UI(G);
 
   // ---------- renderer, scen, ljus ----------
@@ -337,6 +337,8 @@
     else if (d.dock) { if (d.dock === 'floor') { if (G.opsOpen) ui.closeOps(); } else ui.openOps(d.dock); }
     else if (d.otab) { G.opsTab = d.otab; ui.ops(true); ui.hud(); }
     else if (d.unselect) G.selected = null;
+    else if (d.fids) { G.fidsOpen = !G.fidsOpen; ui.tick(me()); }
+    else if (d.sel) { G.selected = +d.sel; G.fidsOpen = false; const f = s.flights.find((x) => x.id === G.selected); if (f && G.mode === 1 && VISIBLE.has(f.phase)) { oc.x = f.x; oc.z = f.z; } ui.tick(me()); }
     else if (d.goto) { if (G.opsOpen) ui.closeOps(); gotoProblem(+d.goto); }
     else if (d.mech) Sim.dispatchMechanic(s, +d.mech);
     else if (d.rush) { const [fid, k] = pair(d.rush); Sim.rushExt(s, +fid, k); ui.ops(true); }

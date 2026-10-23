@@ -109,7 +109,7 @@
       const s = G.s, el = $('flight');
       let f = G.selected && s.flights.find((x) => x.id === G.selected), auto = false;
       if (!f) { f = s.flights.filter((x) => x.phase === 'stand' && x.tasks).sort((a, b) => a.std - b.std)[0]; auto = !!f; }
-      if (!f || G.mode === 1 && !G.selected) { el.hidden = true; last.flight = null; return; }
+      if (!f || G.mode === 1 && !G.selected || G.fidsOpen) { el.hidden = true; last.flight = null; return; }
       el.hidden = false;
       const al = D.airlines[f.al], [txt, cls] = Sim.status(s, f), t = s.t;
       let body = '', why = '';
@@ -135,6 +135,22 @@
         <h3><i class="sw" style="background:${hex(al.color)}"></i>${esc(f.code)} → ${esc(f.to)} <span class="pill ${cls || 'muted'}">${esc(txt)}</span></h3>
         <span class="sub">${auto ? 'Närmast avgång · ' : ''}Gate ${f.stand} · ${D.aircraft[f.size].model} · avgång ${T(f.std)} · ${f.paxOut} pax</span>
         ${why ? `<span class="why">${esc(why)}</span>` : ''}${causes}${body}`, 'flight');
+    }
+
+    // ---------- tidtabell ----------
+    function fids() {
+      const el = $('fids'); $('fidsBtn').setAttribute('aria-pressed', String(!!G.fidsOpen));
+      if (!G.fidsOpen || G.opsOpen) { el.hidden = true; last.fids = null; return; }
+      el.hidden = false;
+      const s = G.s, t = s.t;
+      const row = (f, dep) => {
+        const al = D.airlines[f.al], [txt, cls] = Sim.status(s, f), tm = dep ? f.std : f.sta;
+        const late = dep ? (f.offBlock ? f.offBlock - f.std : t > f.std ? Math.floor(t - f.std) : 0) : (f.onBlock ? f.onBlock - f.sta : t > f.sta ? Math.floor(t - f.sta) : 0);
+        return `<button type="button" class="frow ${G.selected === f.id ? 'sel' : ''}" data-sel="${f.id}"><span class="tm num">${T(tm)}</span><span class="cd"><i class="sw" style="background:${hex(al.color)}"></i><span>${esc(f.code)} ${dep ? '→ ' + esc(f.to) : '← ' + esc(f.from)}</span></span><span class="pill ${cls || 'muted'}">${esc(txt)}</span><span class="sb">Gate ${f.stand}${late > 5 ? ` · ${late} min sen` : ''}</span></button>`;
+      };
+      const arr = s.flights.filter((f) => ['sched', 'holding', 'approach', 'rollout', 'taxiIn'].includes(f.phase)).sort((a, b) => a.sta - b.sta).slice(0, 5);
+      const dep = s.flights.filter((f) => ['stand', 'pushback'].includes(f.phase) || (['taxiOut', 'hold', 'takeoff'].includes(f.phase))).sort((a, b) => a.std - b.std).slice(0, 6);
+      set(el, `<h3>Ankomster <span class="note" style="font-size:12px">${arr.length ? '' : 'inga fler i dag'}</span></h3>${arr.map((f) => row(f, false)).join('')}<h3>Avgångar</h3>${dep.map((f) => row(f, true)).join('') || '<span class="note">Inga plan vid gate.</span>'}`, 'fids');
     }
 
     // ---------- minikarta ----------
@@ -363,7 +379,7 @@
         <div class="btns"><button type="button" class="btn y" data-act="close">Nästa dag</button></div>`);
     }
 
-    function tick(managerPos) { hud(); alerts(); flightCard(); ops(); minimap(managerPos); }
+    function tick(managerPos) { hud(); alerts(); flightCard(); fids(); ops(); minimap(managerPos); }
     return { tick, hud, ops, openOps, closeOps, toast, modal, close, intro, menu, transfer, askNew, report };
   }
   SH.UI = UI;
