@@ -42,6 +42,7 @@ Spelet ska kräva strategi hela vägen och inte lösas på en timme och sedan ba
 | 2026-10-23 | **En speldag ≈ 20 minuter** i normal fart. | Kimm, fråga 2. |
 | 2026-10-24 | **Två sätt att spela som påverkar varandra**: *Driftcentralen* (gateplanering på tidslinje, personal, utrustning och service, bränsle och externa firmor, ekonomi) och *golvet* (problem blir korta hands-on-uppgifter på 15–40 s: hämta verktyg och laga, plocka FOD, eskortera vilsen passagerare, starta om brygga, marshalla in plan själv, hjälpa till att lasta). Bra planering ger färre bränder. | Kimm: v0.2 kändes inte interaktivt, "bara lite off". Diagnos: för få beslut, för enkla handlingar, pengar utan användning, tyst och stelt. |
 | 2026-10-24 | **Polish är en del av spelet**: ljud (motorer, tut, pling, tornets radio), reaktioner när man löser saker, tydligare UI med nedre menyrad, varningslista och minikarta. | Samma återkoppling: "saknar den sista touchen". |
+| 2026-10-25 | **Testar karriärupplägg**: man börjar som ramparbetare och gör turnarounds med egna händer (marshalla, klossar, brygga, väskor i takt, bagagerunda, pushback med knäckrisk), får stjärnor, pengar och XP, anställer kollegor som tar över jobben och blir befordrad (arbetsledare, plattchef, sedan driftcentralen). Prototyp i `career/`. Om den känns rätt ersätter den början av kapitel 1. | Kimm: v0.3 kändes fortfarande som att vara åskådare. Diagnos: spelet behövde inte spelaren, inga korta mål eller belöningar, ingen synlig utveckling. |
 | 2026-10-24 | **Fri kamera**: vrid, luta och zooma oberoende av rörelseriktningen. Följer aldrig automatiskt med bilen. | Kimm. |
 | 2026-10-23 | Flygplatsen är **fiktiv**. Spelaren kan döpa den själv (t.ex. efter sin hemstad). | Frihet för spelaren, inga varumärkesproblem. |
 | 2026-10-23 | Spelet byggs i **samma ordning som det spelas**. Varje avdelning görs riktigt bra innan nästa påbörjas. | Undvika fem ytliga spel i stället för ett djupt. |
@@ -105,7 +106,9 @@ Saker som byggs nu men måste hänga ihop med senare delar. Uppdatera när någo
   minikarta, menyrad) och driftcentralen (dragbar gateplanering med krockar, personal i lag med skift, trötthet,
   kompetens, rast, utbildning och anställning, utrustning med slitage, service, köp och utköp, externa firmor med
   skynda på och premiumavtal, ekonomi). Ekonomin är skärpt: fasta kostnader 85 000 kr/dygn, lägre avgifter.
-- **Nästa**: golvuppgifterna (verktyg, timing, plocka FOD, eskortera, marshalla), sedan ljud och polish.
+- **Karriärprototypen (`career/`)**: ett skift 06–14:30, gate A1 (A2 vid befordran), handgjorda turnarounds,
+  stjärnor, svit, dagens mål, fyra kollegor, tre nivåer, syntetiska ljud. Testad med robotspelare (`tools/run-career-smoke.sh`).
+- **Nästa**: Kimm testar karriärprototypen. Känns den rätt bygger vi om kapitel 1 kring den.
   Byggläget (flytta och bygga gates, taxilinjer, depåer) kommer efter det. (v1 och v2 sparade som `mockups/stilskiss-v1.html` och `-v2.html`) för tecknad 3D med golvläge (`mockups/stilskiss.html`,
   https://kimmen1993.github.io/skyhub/mockups/stilskiss.html). Väntar på Kimms omdöme om stil och känsla.
   Skissen är ritad helt i kod. Den riktiga versionen kan använda gratis modellpaket (CC0) för rikare figurer och fordon.

@@ -746,5 +746,6 @@
   }
 
   SH.Sim = { create, load, serialize, advance, fmt, status, taskInfo, fixProblem, dispatchMechanic, safetyHit, problemTitle, standById, centerZ, workSpot, DAY, SPD, TASK_NAME,
+    arrivalPath, pushPath, taxiOutPath, takeoffPath, smooth, pathTime, stepAlong,
     staffAvail, workFactor, onShift, teamActive, teamBreak, teamTrain, hire, fire, setShift, buyUnit, buyOut, serviceUnit, rushExt, setPremium, reassign, plan, autoAssign, delayCause };
 })();

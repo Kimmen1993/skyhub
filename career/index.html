@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="sv">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SkyHub Karriär</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap">
+<style>
+[hidden] { display: none !important; }
+/* Layout: helskärmsvärld. Du (klocka, nivå, pengar) uppe till vänster, aktiva plan som kort i mitten, dagens mål till höger,
+   uppmaning och väskspel nere i mitten, stor F-knapp nere till höger för pekskärm. Ett enda ljust spel-tema. */
+:root {
+  --ink: #1d2433;
+  --paper: #fffaf0;
+  --paper-2: #f3ecdd;
+  --sky: #8fd0f2;
+  --coral: #e8634a;
+  --sun: #f2b134;
+  --teal: #2bb3a6;
+  --mint: #6fd39b;
+  --muted: #5d6779;
+  --font-display: "Fredoka", "Nunito", system-ui, sans-serif;
+  --font-body: "Nunito", system-ui, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--sky); color: var(--ink); font-family: var(--font-body); font-size: 14px; overflow: hidden; -webkit-user-select: none; user-select: none; }
+button { font: inherit; color: inherit; }
+#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.panel { background: var(--paper); border: 3px solid var(--ink); border-radius: 16px; box-shadow: 0 4px 0 var(--ink); }
+.fx { position: fixed; }
+.btn { font: 700 14px var(--font-display); padding: 7px 13px; border: 2.5px solid var(--ink); border-radius: 11px; background: var(--paper); box-shadow: 0 2px 0 var(--ink); cursor: pointer; white-space: nowrap; }
+.btn.y { background: var(--sun); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn:active:not(:disabled) { transform: translateY(2px); box-shadow: none; }
+.btn:focus-visible { outline: 3px solid var(--coral); outline-offset: 2px; }
+.pill { font: 600 12px var(--font-display); padding: 1px 9px; border-radius: 999px; border: 2px solid var(--ink); white-space: nowrap; }
+.ok { background: var(--mint); } .muted { background: #d8dde6; }
+.num { font-variant-numeric: tabular-nums; }
+.key { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 5px; border-radius: 7px; background: var(--paper); border: 2.5px solid var(--ink); box-shadow: 0 2px 0 var(--ink); font: 700 12px var(--font-display); }
+.sw { width: 11px; height: 11px; border-radius: 3px; border: 2px solid var(--ink); display: inline-block; flex: none; }
+
+#me { left: calc(12px + env(safe-area-inset-left, 0px)); top: calc(12px + env(safe-area-inset-top, 0px)); padding: 8px 14px; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; align-items: center; width: 300px; }
+.clock { font: 700 28px var(--font-display); display: flex; gap: 3px; align-items: center; }
+.clock span { background: var(--ink); color: var(--paper); border-radius: 7px; padding: 0 6px; min-width: 40px; text-align: center; }
+.who { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.who b { font: 700 15px var(--font-display); }
+.who small { font-size: 11px; font-weight: 800; color: var(--muted); }
+.xp { height: 9px; border-radius: 5px; border: 2px solid var(--ink); background: #ece6d8; overflow: hidden; }
+.xp i { display: block; height: 100%; background: var(--teal); transition: width 0.4s; }
+#me .money { grid-column: 1 / 3; font: 700 17px var(--font-display); }
+
+#cards { left: 50%; top: calc(12px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); display: flex; gap: 10px; }
+.fcard { padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; min-width: 270px; }
+.fcard .top { display: flex; gap: 7px; align-items: center; font-weight: 800; font-size: 13px; white-space: nowrap; }
+.fcard .top b { font: 700 15px var(--font-display); }
+.fcard .cd { margin-left: auto; font: 700 13px var(--font-display); background: var(--mint); border: 2px solid var(--ink); border-radius: 8px; padding: 0 7px; }
+.fcard.hot .cd { background: var(--sun); }
+.fcard .cd.late { background: var(--coral); color: #fff; }
+.fcard.next { opacity: 0.85; min-width: 220px; }
+.steps { display: flex; gap: 4px; }
+.step { width: 24px; height: 24px; border-radius: 7px; border: 2px solid #b9b19f; display: grid; place-items: center; font: 700 12px var(--font-display); color: #b9b19f; background: #f6f1e5; }
+.step.ready { border-color: var(--ink); color: var(--ink); background: #fff3c4; animation: blink 1.2s ease-in-out infinite; }
+.step.act { border-color: var(--ink); color: #fff; background: var(--teal); }
+.step.done { border-color: var(--ink); color: var(--ink); background: var(--mint); }
+.step.help { box-shadow: inset 0 -4px 0 #8b5cf6; }
+.fcard .sub { font-weight: 800; color: var(--muted); font-size: 12px; }
+@keyframes blink { 50% { transform: scale(1.12); } }
+
+#side { right: calc(12px + env(safe-area-inset-right, 0px)); top: calc(12px + env(safe-area-inset-top, 0px)); display: flex; flex-direction: column; gap: 8px; width: 250px; }
+#goals { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+#goals h3 { margin: 0; font: 700 15px var(--font-display); }
+.goal { display: flex; gap: 8px; align-items: center; font-weight: 800; font-size: 13px; }
+.goal span { min-width: 34px; text-align: center; font: 700 12px var(--font-display); border: 2px solid var(--ink); border-radius: 8px; background: #ece6d8; }
+.goal.done { color: var(--muted); text-decoration: line-through; }
+.goal.done span { background: var(--mint); }
+.streak { font: 700 14px var(--font-display); background: var(--sun); border: 2px solid var(--ink); border-radius: 10px; padding: 3px 8px; text-align: center; animation: blink 1s ease-in-out infinite; }
+.sbtns { display: flex; gap: 6px; flex-wrap: wrap; }
+
+#radio { left: calc(12px + env(safe-area-inset-left, 0px)); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); padding: 8px 12px; font-weight: 800; font-size: 13px; max-width: min(420px, calc(50% - 200px)); transition: opacity 0.6s; }
+#radio em { font-style: normal; color: #3f6fd8; }
+#radio.fade { opacity: 0.35; }
+#prompt { left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); padding: 9px 16px; font: 700 16px var(--font-display); background: var(--sun); white-space: nowrap; pointer-events: none; }
+#act { right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: 84px; height: 84px; border-radius: 50%; font: 700 30px var(--font-display); background: var(--sun); border: 3px solid var(--ink); box-shadow: 0 5px 0 var(--ink); cursor: pointer; touch-action: none; }
+#act:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--ink); }
+#paused { left: 50%; top: calc(110px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); padding: 4px 14px; font: 700 15px var(--font-display); background: var(--sun); }
+
+#rhythm { left: 50%; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: min(620px, calc(100% - 24px)); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+#rhythm .hd { display: flex; justify-content: space-between; align-items: center; font: 700 16px var(--font-display); }
+#rhTrack { position: relative; height: 54px; border: 3px solid var(--ink); border-radius: 14px; background: repeating-linear-gradient(90deg, #3c4a63 0 18px, #46566f 18px 36px); overflow: hidden; }
+#rhTrack .zone { position: absolute; top: 0; bottom: 0; left: 76%; width: 19%; background: rgba(111, 211, 155, 0.75); border-left: 3px solid var(--ink); border-right: 3px solid var(--ink); }
+#rhTrack .bag { position: absolute; top: 9px; width: 34px; height: 30px; margin-left: -17px; border-radius: 7px; border: 2.5px solid var(--ink); background: var(--coral); box-shadow: inset 0 -6px 0 rgba(0,0,0,0.18); }
+#rhTrack .bag::after { content: ""; position: absolute; left: 9px; right: 9px; top: -7px; height: 6px; border: 2.5px solid var(--ink); border-bottom: 0; border-radius: 5px 5px 0 0; }
+#rhTrack .bag.hit { background: var(--mint); transform: translateY(-40px) scale(0.6); transition: transform 0.3s; }
+#rhythm .ft { display: flex; justify-content: space-between; align-items: center; font-weight: 800; }
+.fb { font: 700 18px var(--font-display); animation: fbpop 0.5s ease-out; }
+.fb.good { color: #1f8a4c; } .fb.bad { color: #b8432f; } .fb.meh { color: var(--muted); }
+@keyframes fbpop { from { transform: scale(1.5); } }
+
+#celebrate { left: 50%; top: 32%; transform: translate(-50%, -50%); padding: 16px 24px; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; pointer-events: none; }
+#celebrate.show { animation: cel 0.5s cubic-bezier(.2,1.6,.4,1); }
+@keyframes cel { from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } }
+#celebrate .stars { font-size: 46px; letter-spacing: 4px; -webkit-text-stroke: 2px var(--ink); }
+#celebrate .stars span { color: #e6e0d2; display: inline-block; }
+#celebrate .stars span.on { color: var(--sun); animation: star 0.5s cubic-bezier(.2,1.8,.4,1) both; }
+@keyframes star { from { transform: scale(0) rotate(-40deg); } }
+#celebrate b { font: 700 19px var(--font-display); }
+#celebrate .pay { font: 700 20px var(--font-display); color: #1f8a4c; }
+
+#toasts { position: fixed; left: 50%; transform: translateX(-50%); top: calc(96px + env(safe-area-inset-top, 0px)); display: flex; flex-direction: column; gap: 6px; align-items: center; pointer-events: none; width: min(520px, calc(100% - 24px)); }
+.toast { padding: 7px 14px; font: 600 14px var(--font-display); text-align: center; animation: tin 0.25s ease-out; }
+.toast.bad { background: #ffe3dc; } .toast.good { background: #e3f7ea; } .toast.event { background: #fff3c4; }
+@keyframes tin { from { transform: translateY(-6px); opacity: 0.4; } }
+.honk { position: fixed; transform: translate(-50%, -100%) rotate(-6deg); font: 700 16px var(--font-display); padding: 3px 9px; background: var(--sun); border: 3px solid var(--ink); border-radius: 12px; pointer-events: none; }
+
+#modal { position: fixed; inset: 0; background: rgba(29, 36, 51, 0.45); display: grid; place-items: center; padding: 16px; z-index: 10; }
+.dialog { width: min(560px, 100%); max-height: calc(100% - 32px); overflow-y: auto; padding: 22px; display: flex; flex-direction: column; gap: 12px; }
+.dialog h2 { margin: 0; font: 700 24px var(--font-display); }
+.dialog p, .dialog li { margin: 0; line-height: 1.55; max-width: 62ch; }
+.dialog ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 5px; }
+.dialog .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.dialog .small { font-size: 12.5px; color: var(--muted); font-weight: 700; }
+.kv { display: grid; grid-template-columns: 1fr auto; gap: 5px 14px; font-weight: 700; }
+.kv b { font-family: var(--font-display); color: #c88a12; }
+.hire { display: flex; gap: 12px; align-items: center; justify-content: space-between; border: 2.5px solid var(--ink); border-radius: 14px; padding: 10px 12px; background: #fff; }
+.hire div { display: flex; flex-direction: column; gap: 2px; }
+.hire b { font: 700 16px var(--font-display); }
+.hire small { color: var(--muted); font-weight: 700; }
+.hire.has { background: #e3f7ea; }
+
+@media (prefers-reduced-motion: reduce) { .step.ready, .streak, #celebrate.show, .toast, .fb, #celebrate .stars span.on { animation: none; } }
+@media (max-width: 980px) { #cards { top: auto; bottom: calc(70px + env(safe-area-inset-bottom, 0px)); } #radio { display: none; } #side { width: 210px; } }
+@media (max-width: 680px) { #side { display: none; } #me { width: 230px; } .fcard { min-width: 0; } #cards .next { display: none; } }
+</style>
+
+<canvas id="c" aria-label="Flygplatsen"></canvas>
+<div id="me" class="fx panel"></div>
+<div id="cards" class="fx"></div>
+<div id="side" class="fx">
+  <div id="goals" class="panel"></div>
+  <div class="sbtns"><button type="button" class="btn y" id="hireBtn">Kollegor</button><button type="button" class="btn" id="pauseBtn">Paus</button><button type="button" class="btn" id="mute">Ljud på</button></div>
+</div>
+<div id="paused" class="fx panel" hidden>Pausat (P)</div>
+<div id="radio" class="fx panel" hidden></div>
+<div id="prompt" class="fx panel" hidden></div>
+<div id="rhythm" class="fx panel" hidden>
+  <div class="hd"><span id="rhTitle">Väskor</span><span id="rhCount" class="num">0 / 0</span></div>
+  <div id="rhTrack"></div>
+  <div class="ft"><span>Tryck <span class="key">F</span> när väskan är i det gröna</span><span id="rhFb" class="fb"></span></div>
+</div>
+<div id="celebrate" class="fx panel" hidden></div>
+<button type="button" id="act" class="fx" aria-label="Gör (F)">F</button>
+<div id="toasts" aria-live="polite"></div>
+<div id="modal" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="js/data.js"></script>
+<script src="../game/js/sim.js"></script>
+<script src="../game/js/gfx.js"></script>
+<script src="../game/js/world.js"></script>
+<script src="js/sfx.js"></script>
+<script src="js/career.js"></script>
