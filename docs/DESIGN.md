@@ -25,6 +25,10 @@ Spelet ska kräva strategi hela vägen och inte lösas på en timme och sedan ba
 | 2026-10-23 | Simuleringen är skild från grafiken (`js/sim.js` har ingen grafik). | Grafiken kan bytas utan att spelet byggs om. Samma kärna för hamn och resecentrum. |
 | 2026-10-23 | Grafik: **tecknad, stiliserad 3D** (toon/low-poly). Inte realistisk 3D, inte platta rutor. Referenser: Two Point Hospital, Overcooked, My Perfect Hotel. | Kimm: v0.1-rutorna var oläsliga och 3D-skisserna för realistiska och stela. |
 | 2026-10-23 | Två kameralägen: **översikt** (chefsläget, hela området) och **golvläget** (styr chefsfiguren, kamera snett ovanifrån nära golvet, inte förstapersonsvy). | Kimm vill kunna hoppa in och hjälpa till när något strular. |
+| 2026-10-23 | Färg: klara färger i **detaljerna** (loggor, skyltar, fasadpartier, flaggor, markmålning), inte pastell överallt. Ska kännas levande men inte som ett barnspel. | Kimm: v1-skissen var för tråkig, men spelet får inte bli barnsligt. |
+| 2026-10-23 | **Kollisioner**: man går under vingar men inte genom flygkropp, motorer eller fordon. | Lite mer verklighetstroget. Kostar ingen grafik. |
+| 2026-10-23 | Fordon **stannar och tutar** i stället för att köra på chefen. Det sänker ett **säkerhetsbetyg**. | Påkörning skapar irritation. En säkerhetsregel ger spelmekanik i stället. |
+| 2026-10-23 | **Kameran kan vridas runt chefen** (Q/E, dra, knappar). Det som skymmer blir genomskinligt. | Kimm: underlättar mycket. Kostnad: allt måste se bra ut från alla håll. |
 | 2026-10-23 | Flygplatsen är **fiktiv**. Spelaren kan döpa den själv (t.ex. efter sin hemstad). | Frihet för spelaren, inga varumärkesproblem. |
 | 2026-10-23 | Spelet byggs i **samma ordning som det spelas**. Varje avdelning görs riktigt bra innan nästa påbörjas. | Undvika fem ytliga spel i stället för ett djupt. |
 | 2026-10-23 | Avdelningar som inte är upplåsta sköts av en **entreprenör som gör det halvbra**. Spelaren ser bristerna och vill ta över. | Ger naturlig motivation att låsa upp, i stället för en dyr knapp. |
@@ -79,7 +83,7 @@ Saker som byggs nu men måste hänga ihop med senare delar. Uppdatera när någo
 
 - **v0.1 (prototyp, klar)**: simulering av flyg, passagerarflöden, bagage, avtal, ekonomi och händelser, med enkel rutgrafik.
   Simuleringen är testad och behålls. Rutgrafiken ersätts.
-- **Pågår**: stilskiss för tecknad 3D med golvläge (`mockups/stilskiss.html`,
+- **Pågår**: stilskiss v2 (v1 sparad som `mockups/stilskiss-v1.html`) för tecknad 3D med golvläge (`mockups/stilskiss.html`,
   https://kimmen1993.github.io/skyhub/mockups/stilskiss.html). Väntar på Kimms omdöme om stil och känsla.
   Skissen är ritad helt i kod. Den riktiga versionen kan använda gratis modellpaket (CC0) för rikare figurer och fordon.
 
