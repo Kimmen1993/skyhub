@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="sv">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SkyHub UI-skiss</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap">
+<style>
+[hidden] { display: none !important; }
+/* Layout: en fast 1280×720-scen som skalas till skärmbredden; flikar ovanför väljer vilken skärm som visas.
+   Spelets tecknade formspråk: krämvita paneler, mörk kontur, klara accentfärger i detaljerna. */
+:root {
+  --ink: #1d2433;
+  --paper: #fffaf0;
+  --paper-2: #f3ecdd;
+  --sky: #8fd0f2;
+  --coral: #e8634a;
+  --sun: #f2b134;
+  --teal: #2bb3a6;
+  --blue: #3f6fd8;
+  --violet: #8b5cf6;
+  --mint: #6fd39b;
+  --muted: #5d6779;
+  --font-display: "Fredoka", "Nunito", system-ui, sans-serif;
+  --font-body: "Nunito", system-ui, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: #e9eef4; color: var(--ink); font-family: var(--font-body); }
+.page { max-width: 1320px; margin: 0 auto; padding-block: 20px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 14px; }
+.page h1 { margin: 0; font: 700 26px var(--font-display); }
+.page p { margin: 0; max-width: 70ch; line-height: 1.5; color: #3c4658; }
+.tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.tabs button { font: 700 14px var(--font-display); padding: 8px 14px; border: 3px solid var(--ink); border-radius: 12px; background: var(--paper); box-shadow: 0 3px 0 var(--ink); cursor: pointer; color: var(--ink); }
+.tabs button[aria-pressed="true"] { background: var(--sun); }
+.tabs button:focus-visible { outline: 3px solid var(--coral); outline-offset: 2px; }
+.frame { width: 100%; max-width: 100%; aspect-ratio: 16 / 9; position: relative; border: 3px solid var(--ink); border-radius: 14px; overflow: hidden; box-shadow: 0 5px 0 var(--ink); background: var(--sky); }
+.stage { position: absolute; left: 0; top: 0; width: 1280px; height: 720px; transform-origin: 0 0; font-size: 14px; }
+.note { font-weight: 700; color: var(--muted); }
+
+/* ---- spel-UI ---- */
+.panel { background: var(--paper); border: 3px solid var(--ink); border-radius: 16px; box-shadow: 0 4px 0 var(--ink); }
+.abs { position: absolute; }
+.ico { width: 22px; height: 22px; stroke: var(--ink); stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.pill { font: 600 12px var(--font-display); padding: 1px 9px; border-radius: 999px; border: 2px solid var(--ink); white-space: nowrap; }
+.btn { font: 700 13px var(--font-display); padding: 6px 12px; border: 2.5px solid var(--ink); border-radius: 10px; background: var(--paper); box-shadow: 0 2px 0 var(--ink); white-space: nowrap; }
+.btn.y { background: var(--sun); } .btn.t { background: var(--teal); color: #fff; }
+
+.status { left: 14px; top: 14px; padding: 10px 14px; display: grid; grid-template-columns: auto auto; gap: 2px 16px; align-items: center; }
+.status .name { font: 700 17px var(--font-display); grid-column: 1 / 3; display: flex; gap: 8px; align-items: center; }
+.clock { font: 700 34px var(--font-display); letter-spacing: 0.02em; display: flex; gap: 3px; }
+.clock span { background: var(--ink); color: var(--paper); border-radius: 7px; padding: 0 6px; }
+.clock i { font-style: normal; color: var(--ink); }
+.status .meta { font-weight: 800; font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
+.money { left: 14px; top: 118px; padding: 6px 12px; font: 700 17px var(--font-display); display: flex; gap: 8px; align-items: center; }
+.money .pop { font: 700 13px var(--font-display); color: #1f8a4c; background: #e3f7ea; border: 2px solid var(--ink); border-radius: 8px; padding: 0 6px; transform: translateY(-14px) rotate(-4deg); }
+
+.kpis { left: 50%; top: 14px; transform: translateX(-50%); display: flex; gap: 10px; padding: 8px 12px; }
+.kpi { display: flex; gap: 8px; align-items: center; font-weight: 800; font-size: 12px; }
+.kpi b { display: block; font: 700 17px var(--font-display); }
+.ring { width: 40px; height: 40px; }
+
+.topright { right: 14px; top: 14px; display: flex; gap: 8px; align-items: center; }
+.seg { display: flex; border: 3px solid var(--ink); border-radius: 12px; overflow: hidden; box-shadow: 0 3px 0 var(--ink); background: var(--paper); }
+.seg b { padding: 7px 10px; font: 700 13px var(--font-display); }
+.seg b + b { border-left: 2px solid var(--ink); }
+.seg b.on { background: var(--sun); }
+
+.alerts { right: 14px; top: 78px; width: 300px; display: flex; flex-direction: column; gap: 8px; }
+.alert { padding: 9px 10px 9px 12px; display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; position: relative; overflow: hidden; }
+.alert::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--coral); }
+.alert.y::before { background: var(--sun); } .alert.v::before { background: var(--violet); }
+.alert .ic { width: 34px; height: 34px; border-radius: 10px; border: 2.5px solid var(--ink); display: grid; place-items: center; background: #ffe3dc; grid-row: 1 / 3; }
+.alert.y .ic { background: #fff3c4; } .alert.v .ic { background: #ece4ff; }
+.alert .t { font: 700 14px var(--font-display); }
+.alert .s { font-size: 12px; font-weight: 700; color: var(--muted); }
+.alert .timer { grid-column: 1 / 3; height: 7px; border-radius: 4px; background: #e6e0d2; border: 1.5px solid var(--ink); overflow: hidden; }
+.alert .timer i { display: block; height: 100%; background: var(--coral); }
+.alert .row { grid-column: 1 / 3; display: flex; gap: 6px; }
+
+.flight { left: 14px; top: 172px; width: 300px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.flight h3 { margin: 0; font: 700 16px var(--font-display); display: flex; gap: 8px; align-items: center; }
+.flight .sub { font-size: 12px; font-weight: 700; color: var(--muted); }
+.lane { display: grid; grid-template-columns: 88px 1fr; gap: 3px 8px; align-items: center; font-size: 12px; font-weight: 800; }
+.track { height: 12px; border-radius: 6px; background: #ece6d8; position: relative; border: 1.5px solid #cfc6b1; }
+.track i { position: absolute; top: -1.5px; bottom: -1.5px; border-radius: 6px; border: 1.5px solid var(--ink); }
+.now { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--coral); }
+
+.radio { left: 14px; bottom: 98px; padding: 7px 12px; display: flex; gap: 8px; align-items: center; font-weight: 800; font-size: 13px; max-width: 520px; }
+.radio em { font-style: normal; color: var(--blue); }
+.hand { left: 14px; bottom: 14px; padding: 8px 12px; display: flex; gap: 10px; align-items: center; font-weight: 800; }
+.slot { width: 52px; height: 52px; border-radius: 12px; border: 3px solid var(--ink); background: #fff3c4; display: grid; place-items: center; }
+.slot .ico { width: 30px; height: 30px; }
+
+.dock { left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; gap: 6px; padding: 7px; }
+.dock a { width: 86px; height: 66px; border-radius: 12px; border: 2.5px solid var(--ink); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font: 700 12px var(--font-display); color: var(--ink); text-decoration: none; position: relative; background: var(--paper); }
+.dock a.on { background: var(--sun); }
+.dock a .ico { width: 26px; height: 26px; }
+.dock .bd { position: absolute; top: -9px; right: -7px; min-width: 22px; height: 22px; border-radius: 11px; background: var(--coral); color: #fff; border: 2.5px solid var(--ink); font-size: 11px; display: grid; place-items: center; padding: 0 4px; }
+
+.mini { right: 14px; bottom: 14px; width: 230px; height: 150px; padding: 0; overflow: hidden; }
+.mini svg { width: 100%; height: 100%; display: block; }
+.prompt { left: 610px; top: 380px; padding: 7px 12px; display: flex; gap: 8px; align-items: center; font: 700 14px var(--font-display); background: var(--sun); }
+.prompt::after { content: ""; position: absolute; left: 30px; bottom: -13px; border: 10px solid transparent; border-top-color: var(--ink); }
+.key { display: inline-grid; place-items: center; min-width: 26px; height: 26px; border-radius: 7px; background: var(--paper); border: 2.5px solid var(--ink); box-shadow: 0 2px 0 var(--ink); font: 700 13px var(--font-display); }
+
+/* driftcentral */
+.dim { inset: 0; background: rgba(29, 36, 51, 0.38); }
+.ops { left: 40px; top: 30px; right: 40px; bottom: 30px; display: flex; flex-direction: column; overflow: hidden; }
+.ops header { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 3px solid var(--ink); background: var(--paper-2); }
+.ops header h2 { margin: 0; font: 700 22px var(--font-display); display: flex; gap: 10px; align-items: center; }
+.otabs { display: flex; gap: 6px; margin-left: 12px; }
+.otabs b { font: 700 13px var(--font-display); padding: 6px 11px; border: 2.5px solid var(--ink); border-radius: 10px; background: var(--paper); display: flex; gap: 6px; align-items: center; }
+.otabs b.on { background: var(--sun); }
+.ops .x { margin-left: auto; font: 700 22px var(--font-display); }
+.ops .body { flex: 1; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.gantt { position: relative; border: 2.5px solid var(--ink); border-radius: 12px; background: #fff; overflow: hidden; }
+.ghead, .grow { display: grid; grid-template-columns: 70px 1fr; }
+.ghead { border-bottom: 2px solid var(--ink); background: var(--paper-2); font: 700 12px var(--font-display); }
+.ghead .hrs { position: relative; height: 26px; }
+.ghead .hrs span { position: absolute; top: 5px; transform: translateX(-50%); }
+.grow { border-bottom: 1.5px solid #e2dccd; height: 54px; }
+.grow:last-child { border-bottom: 0; }
+.grow .lab { font: 700 15px var(--font-display); display: flex; align-items: center; gap: 6px; padding-left: 10px; border-right: 2px solid var(--ink); background: var(--paper); }
+.grow .lab small { font: 700 10px var(--font-body); color: var(--muted); }
+.grow .tl { position: relative; background: repeating-linear-gradient(90deg, transparent 0 59px, #efe9db 59px 60px); }
+.blk { position: absolute; top: 8px; height: 36px; border-radius: 9px; border: 2.5px solid var(--ink); color: #fff; font: 700 12px var(--font-display); padding: 2px 7px; line-height: 1.2; overflow: hidden; white-space: nowrap; box-shadow: 0 2px 0 var(--ink); }
+.blk small { display: block; font: 700 10px var(--font-body); opacity: 0.9; }
+.blk.sel { outline: 3px dashed var(--coral); outline-offset: 2px; transform: translateY(-3px); box-shadow: 0 5px 0 var(--ink); }
+.blk.ghost { opacity: 0.35; border-style: dashed; }
+.clash { position: absolute; top: 4px; height: 44px; border-radius: 8px; background: repeating-linear-gradient(45deg, rgba(232, 99, 74, 0.35) 0 6px, transparent 6px 12px); border: 2px solid var(--coral); }
+.nowline { position: absolute; top: 0; bottom: 0; width: 3px; background: var(--coral); z-index: 2; }
+.nowline::before { content: "14:32"; position: absolute; top: 2px; left: 6px; font: 700 11px var(--font-display); color: var(--coral); }
+.infobar { display: flex; gap: 12px; align-items: center; padding: 10px 12px; border: 2.5px solid var(--ink); border-radius: 12px; background: #fff1ea; font-weight: 800; }
+.infobar .grow2 { flex: 1; }
+
+.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.team { border: 2.5px solid var(--ink); border-radius: 14px; padding: 12px; background: #fff; display: flex; flex-direction: column; gap: 8px; }
+.team h3 { margin: 0; font: 700 17px var(--font-display); display: flex; gap: 8px; align-items: center; }
+.faces { display: flex; }
+.face { width: 34px; height: 34px; border-radius: 50%; border: 2.5px solid var(--ink); margin-right: -6px; display: grid; place-items: center; font: 700 12px var(--font-display); color: var(--ink); }
+.bar2 { display: grid; grid-template-columns: 92px 1fr 40px; gap: 6px; align-items: center; font-size: 12px; font-weight: 800; }
+.bar2 span:nth-child(2) { height: 10px; border-radius: 5px; border: 1.5px solid var(--ink); background: #ece6d8; overflow: hidden; }
+.bar2 i { display: block; height: 100%; }
+.stars { color: var(--sun); font-size: 15px; letter-spacing: 1px; -webkit-text-stroke: 1px var(--ink); }
+.cands { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.cand { border: 2.5px dashed var(--ink); border-radius: 14px; padding: 10px 12px; background: var(--paper); display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 700; }
+.cand b { font: 700 15px var(--font-display); }
+.cand q { color: var(--muted); font-style: italic; quotes: none; }
+
+table.eq { width: 100%; border-collapse: separate; border-spacing: 0; border: 2.5px solid var(--ink); border-radius: 12px; overflow: hidden; background: #fff; font-weight: 800; font-size: 13px; }
+table.eq th { text-align: left; background: var(--paper-2); font: 700 12px var(--font-display); padding: 7px 10px; border-bottom: 2px solid var(--ink); }
+table.eq td { padding: 7px 10px; border-bottom: 1.5px solid #e9e3d4; vertical-align: middle; }
+table.eq tr:last-child td { border-bottom: 0; }
+.wear { width: 110px; height: 10px; border-radius: 5px; border: 1.5px solid var(--ink); background: #ece6d8; overflow: hidden; display: inline-block; vertical-align: middle; margin-right: 6px; }
+.wear i { display: block; height: 100%; }
+.shop { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.item { border: 2.5px solid var(--ink); border-radius: 14px; background: #fff; padding: 10px; display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 700; }
+.item b { font: 700 14px var(--font-display); }
+.item .price { font: 700 15px var(--font-display); }
+
+/* uppgift */
+.task { left: 50%; bottom: 100px; transform: translateX(-50%); width: 560px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.task h3 { margin: 0; font: 700 19px var(--font-display); display: flex; gap: 10px; align-items: center; }
+.steps { display: flex; gap: 8px; }
+.step { flex: 1; border: 2.5px solid var(--ink); border-radius: 12px; padding: 7px 9px; font-size: 12px; font-weight: 800; background: var(--paper); display: flex; gap: 6px; align-items: center; }
+.step.done { background: #e3f7ea; } .step.cur { background: #fff3c4; }
+.step .n { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--ink); display: grid; place-items: center; font: 700 12px var(--font-display); background: #fff; flex: none; }
+.meter { position: relative; height: 34px; border: 3px solid var(--ink); border-radius: 12px; background: #ece6d8; overflow: hidden; }
+.meter .zone { position: absolute; top: 0; bottom: 0; left: 58%; width: 14%; background: var(--mint); border-left: 2.5px solid var(--ink); border-right: 2.5px solid var(--ink); }
+.meter .needle { position: absolute; top: -4px; bottom: -4px; width: 6px; left: 62%; background: var(--ink); border-radius: 3px; animation: swing 1.6s ease-in-out infinite alternate; }
+@keyframes swing { from { left: 6%; } to { left: 90%; } }
+@media (prefers-reduced-motion: reduce) { .meter .needle { animation: none; } }
+.taskfoot { display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 13px; }
+.tools { left: 50%; top: 90px; transform: translateX(-50%); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; width: 520px; }
+.tools h3 { margin: 0; font: 700 16px var(--font-display); }
+.trow { display: flex; gap: 10px; }
+.tool { flex: 1; border: 2.5px solid var(--ink); border-radius: 12px; padding: 8px; display: flex; flex-direction: column; align-items: center; gap: 4px; font: 700 12px var(--font-display); background: #fff; }
+.tool.pick { background: #fff3c4; outline: 3px dashed var(--coral); outline-offset: 2px; }
+.tool .ico { width: 30px; height: 30px; }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-ops" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 12l6-5"/></symbol>
+  <symbol id="i-gate" viewBox="0 0 24 24"><path d="M12 3l1.6 5.5 6.4 3.7v1.8l-6.4-1.8-.8 5 2.6 1.8V21L12 20l-3.4 1v-1.6l2.6-1.8-.8-5L4 14v-1.8l6.4-3.7z"/></symbol>
+  <symbol id="i-staff" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.4 2.8-5.2 5.5-5.2s4.9 1.8 5.5 5.2"/><circle cx="17" cy="9" r="2.6"/><path d="M15.5 13.6c2.4-.3 4.4 1.2 5 4.4"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><rect x="3" y="10" width="13" height="6" rx="2"/><path d="M16 12h3l2 3v1h-5"/><circle cx="7" cy="17.5" r="2"/><circle cx="17" cy="17.5" r="2"/><path d="M6 10V7h6v3"/></symbol>
+  <symbol id="i-money" viewBox="0 0 24 24"><ellipse cx="12" cy="7" rx="7" ry="3"/><path d="M5 7v5c0 1.7 3.1 3 7 3s7-1.3 7-3V7"/><path d="M5 12v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></symbol>
+  <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.5 5.5a4 4 0 0 0 4.9 4.9l-9.6 9.6a2 2 0 0 1-2.8-2.8l9.6-9.6a4 4 0 0 1-2.1-2.1z"/><path d="M15 3.5l2 2"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13"/></symbol>
+  <symbol id="i-food" viewBox="0 0 24 24"><path d="M4 14h16a8 8 0 0 0-16 0zM3 17h18M12 6V4"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18h10a4 4 0 0 0 0-8 6 6 0 0 0-11.5 1.5A3.3 3.3 0 0 0 7 18z"/></symbol>
+  <symbol id="i-radio" viewBox="0 0 24 24"><rect x="6" y="8" width="12" height="13" rx="2"/><path d="M9 8l-3-5M10 13h4M10 16h4"/></symbol>
+  <symbol id="i-fuel" viewBox="0 0 24 24"><path d="M5 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h14M7 8h6M15 9l3 2v7a1.5 1.5 0 0 0 3 0V9l-3-3"/></symbol>
+  <symbol id="i-fuse" viewBox="0 0 24 24"><rect x="8" y="3" width="8" height="18" rx="2"/><path d="M12 6v12M8 8h8M8 16h8"/></symbol>
+  <symbol id="i-torque" viewBox="0 0 24 24"><path d="M4 20l9-9"/><circle cx="16" cy="8" r="4"/><path d="M16 8l2-2"/></symbol>
+</svg>
+
+<div class="page">
+  <h1>SkyHub UI-skiss</h1>
+  <p>Så här föreslår jag att spelet ska se ut och kännas. Bläddra mellan skärmarna. Allt är statiskt utom mätaren i uppgiften. Kommentera fritt: vad som är bra, vad som är för mycket och vad som saknas.</p>
+  <div class="tabs" role="group" aria-label="Välj skärm">
+    <button type="button" data-s="floor" aria-pressed="true">1. Golvet (nya HUD:en)</button>
+    <button type="button" data-s="gates" aria-pressed="false">2. Driftcentralen: gateplanering</button>
+    <button type="button" data-s="staff" aria-pressed="false">3. Personal</button>
+    <button type="button" data-s="equip" aria-pressed="false">4. Utrustning och service</button>
+    <button type="button" data-s="task" aria-pressed="false">5. Golvuppgift: laga bandlastaren</button>
+  </div>
+  <div class="frame" id="frame">
+    <div class="stage" id="stage">
+      <!-- spelvärld i bakgrunden (förenklad illustration) -->
+      <svg class="abs" width="1280" height="720" viewBox="0 0 1280 720" aria-hidden="true">
+        <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4fa9e6"/><stop offset="1" stop-color="#cdeefb"/></linearGradient></defs>
+        <rect width="1280" height="250" fill="url(#sky)"/>
+        <g fill="#fff" opacity="0.95"><ellipse cx="220" cy="80" rx="60" ry="20"/><ellipse cx="260" cy="70" rx="40" ry="22"/><ellipse cx="980" cy="110" rx="70" ry="20"/><ellipse cx="1030" cy="98" rx="40" ry="20"/></g>
+        <rect y="230" width="1280" height="490" fill="#86c96a"/>
+        <polygon points="0,330 1280,300 1280,720 0,720" fill="#d9dee5"/>
+        <polygon points="0,330 1280,300 1280,332 0,364" fill="#6b7489"/>
+        <g stroke="#fff" stroke-width="3" stroke-dasharray="18 14"><line x1="0" y1="347" x2="1280" y2="316"/></g>
+        <!-- terminal -->
+        <polygon points="0,250 1280,222 1280,300 0,330" fill="#f4efe6" stroke="#1d2433" stroke-width="3"/>
+        <polygon points="0,262 1280,234 1280,276 0,306" fill="#7fd3f0" stroke="#1d2433" stroke-width="3"/>
+        <polygon points="0,240 1280,212 1280,224 0,252" fill="#2e3a52"/>
+        <g fill="#e8634a" stroke="#1d2433" stroke-width="2"><rect x="120" y="258" width="10" height="48"/><rect x="520" y="249" width="10" height="48"/><rect x="920" y="240" width="10" height="48"/></g>
+        <!-- gul ledlinje -->
+        <path d="M640 720 C640 560 640 420 655 340" stroke="#f2b134" stroke-width="6" fill="none"/>
+        <!-- plan vid gate -->
+        <g transform="translate(470 330)" stroke="#1d2433" stroke-width="4" stroke-linejoin="round">
+          <path d="M-40 160 L340 160 L370 140 L370 120 L330 100 L40 100 Q-10 100 -30 125 Z" fill="#fff"/>
+          <path d="M300 100 L340 20 L380 20 L360 100 Z" fill="#3f6fd8"/>
+          <path d="M120 150 L260 150 L230 205 L140 205 Z" fill="#eef1f5"/>
+          <ellipse cx="160" cy="195" rx="44" ry="20" fill="#3f6fd8"/>
+          <path d="M-10 128 L320 128" stroke="#f2b134" stroke-width="7"/>
+          <g fill="#2e3a52" stroke="none"><circle cx="20" cy="118" r="5"/><circle cx="50" cy="116" r="5"/><circle cx="80" cy="116" r="5"/><circle cx="110" cy="116" r="5"/><circle cx="140" cy="116" r="5"/><circle cx="170" cy="116" r="5"/><circle cx="200" cy="116" r="5"/><circle cx="230" cy="116" r="5"/><circle cx="260" cy="116" r="5"/></g>
+          <circle cx="40" cy="168" r="10" fill="#2a2f3a"/><circle cx="210" cy="215" r="12" fill="#2a2f3a"/>
+        </g>
+        <!-- brygga -->
+        <path d="M455 300 L520 300 L515 420 L470 425 Z" fill="#e6eaf0" stroke="#1d2433" stroke-width="4"/>
+        <!-- bandlastare (trasig) -->
+        <g transform="translate(760 560)" stroke="#1d2433" stroke-width="4" stroke-linejoin="round">
+          <rect x="0" y="20" width="120" height="34" rx="10" fill="#f2b134"/>
+          <path d="M10 22 L150 -40 L160 -26 L22 36 Z" fill="#3c4a63"/>
+          <circle cx="25" cy="58" r="11" fill="#2a2f3a"/><circle cx="100" cy="58" r="11" fill="#2a2f3a"/>
+          <g stroke="none" fill="#9aa3b0" opacity="0.8"><circle cx="70" cy="-10" r="12"/><circle cx="90" cy="-30" r="16"/><circle cx="64" cy="-46" r="11"/></g>
+        </g>
+        <!-- chefen -->
+        <g transform="translate(640 540)" stroke="#1d2433" stroke-width="3">
+          <rect x="-12" y="40" width="9" height="34" rx="4" fill="#232c40"/><rect x="3" y="40" width="9" height="34" rx="4" fill="#232c40"/>
+          <rect x="-17" y="2" width="34" height="44" rx="10" fill="#2e3a52"/>
+          <path d="M0 6 L-3 30 L0 36 L3 30 Z" fill="#e8634a" stroke-width="2"/>
+          <circle cx="0" cy="-12" r="16" fill="#f3c9a5"/><path d="M-16 -14 Q0 -36 16 -14 Q8 -22 -16 -14Z" fill="#3b2a20"/>
+          <rect x="18" y="14" width="14" height="20" rx="2" fill="#8a5a3c" stroke-width="2"/>
+        </g>
+        <!-- personal -->
+        <g transform="translate(905 545)" stroke="#1d2433" stroke-width="3"><rect x="-10" y="0" width="22" height="30" rx="7" fill="#ff9a1f"/><circle cx="1" cy="-10" r="11" fill="#b97a55"/><rect x="-8" y="28" width="7" height="22" rx="3" fill="#3c4a63"/><rect x="3" y="28" width="7" height="22" rx="3" fill="#3c4a63"/></g>
+      </svg>
+
+      <!-- 1. GOLVET -->
+      <div data-screen="floor">
+        <div class="abs panel status">
+          <div class="name"><svg class="ico"><use href="#i-gate"/></svg>Norrvik flygplats</div>
+          <div class="clock"><span>14</span><i>:</i><span>32</span></div>
+          <div class="meta"><span>Dag 3 · tisdag</span><span style="display:flex;gap:4px;align-items:center"><svg class="ico" style="width:18px;height:18px"><use href="#i-cloud"/></svg>8° mulet</span></div>
+        </div>
+        <div class="abs panel money"><svg class="ico"><use href="#i-money"/></svg>2 431 800 kr<span class="pop">+21 000</span></div>
+        <div class="abs panel kpis">
+          <div class="kpi"><svg class="ring" viewBox="0 0 40 40"><circle cx="20" cy="20" r="15" fill="none" stroke="#ece6d8" stroke-width="6"/><circle cx="20" cy="20" r="15" fill="none" stroke="#2bb3a6" stroke-width="6" stroke-dasharray="86.7 94.2" transform="rotate(-90 20 20)"/><circle cx="20" cy="20" r="18.5" fill="none" stroke="#1d2433" stroke-width="2"/></svg><span>Punktlighet<b>92 %</b></span></div>
+          <div class="kpi"><svg class="ring" viewBox="0 0 40 40"><circle cx="20" cy="20" r="15" fill="none" stroke="#ece6d8" stroke-width="6"/><circle cx="20" cy="20" r="15" fill="none" stroke="#f2b134" stroke-width="6" stroke-dasharray="78 94.2" transform="rotate(-90 20 20)"/><circle cx="20" cy="20" r="18.5" fill="none" stroke="#1d2433" stroke-width="2"/></svg><span>Säkerhet<b>83 %</b></span></div>
+          <div class="kpi"><svg class="ring" viewBox="0 0 40 40"><circle cx="20" cy="20" r="15" fill="none" stroke="#ece6d8" stroke-width="6"/><circle cx="20" cy="20" r="15" fill="none" stroke="#3f6fd8" stroke-width="6" stroke-dasharray="70 94.2" transform="rotate(-90 20 20)"/><circle cx="20" cy="20" r="18.5" fill="none" stroke="#1d2433" stroke-width="2"/></svg><span>Flygbolagen<b>74 %</b></span></div>
+        </div>
+        <div class="abs topright">
+          <div class="seg"><b>II</b><b class="on">1×</b><b>2×</b><b>4×</b></div>
+          <span class="btn y">Översikt</span><span class="btn">Meny</span>
+        </div>
+        <div class="abs alerts">
+          <div class="panel alert"><span class="ic"><svg class="ico"><use href="#i-wrench"/></svg></span><span class="t">Bandlastaren vid A2 är trasig</span><span class="s">NV 231 väntar på bagage · du är 40 m bort</span><span class="timer"><i style="width:62%"></i></span><span class="row"><span class="btn y">Visa vägen</span><span class="btn">Skicka mekaniker 15 min</span></span></div>
+          <div class="panel alert y"><span class="ic"><svg class="ico"><use href="#i-trash"/></svg></span><span class="t">Skräp på taxilinjen</span><span class="s">Två plan väntar bakom · 4 bitar</span><span class="timer"><i style="width:35%;background:#f2b134"></i></span></div>
+          <div class="panel alert v"><span class="ic"><svg class="ico"><use href="#i-food"/></svg></span><span class="t">Smörgås &amp; Söner är sena</span><span class="s">Catering till A3 · +12 min</span><span class="row"><span class="btn">Ring och skynda på · 3 000 kr</span></span></div>
+        </div>
+        <div class="abs panel flight">
+          <h3><i style="width:12px;height:12px;border-radius:3px;background:#3f6fd8;border:2px solid var(--ink);display:inline-block"></i>NV 231 → Oslo <span class="pill" style="background:#f2b134">Risk +8 min</span></h3>
+          <span class="sub">Gate A2 · A320 · avgång 14:55 · 152 pax</span>
+          <div class="lane"><span>Avstigning</span><span class="track"><i style="left:0;width:22%;background:#6fd39b"></i><span class="now" style="left:48%"></span></span>
+            <span>Bagage</span><span class="track"><i style="left:8%;width:40%;background:#e8634a"></i><span class="now" style="left:48%"></span></span>
+            <span>Tankning</span><span class="track"><i style="left:10%;width:30%;background:#6fd39b"></i><span class="now" style="left:48%"></span></span>
+            <span>Städ/catering</span><span class="track"><i style="left:24%;width:30%;background:#2bb3a6"></i><span class="now" style="left:48%"></span></span>
+            <span>Boarding</span><span class="track"><i style="left:56%;width:32%;background:#d8dde6"></i><span class="now" style="left:48%"></span></span>
+            <span>Pushback</span><span class="track"><i style="left:90%;width:8%;background:#d8dde6"></i><span class="now" style="left:48%"></span></span></div>
+        </div>
+        <div class="abs panel prompt"><span class="key">F</span>Laga bandlastaren · behöver hydraulnyckel</div>
+        <div class="abs panel radio"><svg class="ico"><use href="#i-radio"/></svg><span><em>TORNET:</em> "Nordvind 231, fri att landa bana 09." Lite sent, som vanligt.</span></div>
+        <div class="abs panel hand"><span class="slot"><svg class="ico"><use href="#i-wrench"/></svg></span><span>I handen<br><span style="font:700 15px var(--font-display)">Inget verktyg</span></span></div>
+        <nav class="abs panel dock" aria-label="Driftcentralen">
+          <a class="on"><svg class="ico"><use href="#i-ops"/></svg>Golvet</a>
+          <a><svg class="ico"><use href="#i-gate"/></svg>Gates<span class="bd">1</span></a>
+          <a><svg class="ico"><use href="#i-staff"/></svg>Personal</a>
+          <a><svg class="ico"><use href="#i-gear"/></svg>Utrustning<span class="bd">2</span></a>
+          <a><svg class="ico"><use href="#i-fuel"/></svg>Firmor</a>
+          <a><svg class="ico"><use href="#i-money"/></svg>Ekonomi</a>
+        </nav>
+        <div class="abs panel mini" aria-label="Minikarta">
+          <svg viewBox="0 0 230 150"><rect width="230" height="150" fill="#86c96a"/><rect x="0" y="0" width="230" height="20" fill="#f4efe6" stroke="#1d2433" stroke-width="2"/><rect x="0" y="20" width="230" height="78" fill="#d9dee5"/><rect x="0" y="22" width="230" height="7" fill="#6b7489"/><line x1="0" y1="92" x2="230" y2="92" stroke="#f2b134" stroke-width="2"/><rect x="0" y="112" width="230" height="10" fill="#535b6e"/><rect x="0" y="134" width="230" height="12" fill="#474e60"/>
+            <g fill="#3f6fd8" stroke="#1d2433" stroke-width="1.5"><rect x="30" y="38" width="8" height="34" rx="3"/><rect x="70" y="38" width="8" height="34" rx="3" fill="#e8634a"/><rect x="150" y="38" width="7" height="26" rx="3" fill="#2bb3a6"/><rect x="120" y="88" width="30" height="8" rx="3" fill="#8b5cf6"/></g>
+            <circle cx="96" cy="70" r="5" fill="#f2b134" stroke="#1d2433" stroke-width="2"/>
+            <g font-family="Fredoka" font-weight="700" font-size="11" text-anchor="middle"><circle cx="82" cy="58" r="7" fill="#e8634a" stroke="#1d2433" stroke-width="1.5"/><text x="82" y="62" fill="#fff">!</text><circle cx="160" cy="92" r="7" fill="#f2b134" stroke="#1d2433" stroke-width="1.5"/><text x="160" y="96">!</text></g>
+          </svg>
+        </div>
+      </div>
+
+      <!-- 2. GATEPLANERING -->
+      <div data-screen="gates" hidden>
+        <div class="abs dim"></div>
+        <section class="abs panel ops">
+          <header><h2><svg class="ico"><use href="#i-ops"/></svg>Driftcentralen</h2>
+            <div class="otabs"><b class="on"><svg class="ico" style="width:16px;height:16px"><use href="#i-gate"/></svg>Gateplanering</b><b>Personal</b><b>Utrustning</b><b>Externa firmor</b><b>Ekonomi</b></div>
+            <span class="x">×</span></header>
+          <div class="body">
+            <div class="gantt" id="gantt"></div>
+            <div class="infobar"><span class="pill" style="background:#e8634a;color:#fff">Konflikt</span><span class="grow2">BB 635 landar 11:30 på <b>A3</b>, men NV 328 står kvar till 11:55. Dra BB 635 till <b>A4</b> (ledig) eller <b>R1</b> (buss krävs).</span><span class="btn">Ångra</span><span class="btn y">Fördela automatiskt</span></div>
+            <p class="note" style="margin:0">Dra flygen mellan gates. Grönt mellanrum betyder säker buffert, rött betyder risk för väntan i luften. Kontaktgates ger nöjdare passagerare. Fjärrplatser kräver buss och trappa.</p>
+          </div>
+        </section>
+      </div>
+
+      <!-- 3. PERSONAL -->
+      <div data-screen="staff" hidden>
+        <div class="abs dim"></div>
+        <section class="abs panel ops">
+          <header><h2><svg class="ico"><use href="#i-ops"/></svg>Driftcentralen</h2>
+            <div class="otabs"><b>Gateplanering</b><b class="on"><svg class="ico" style="width:16px;height:16px"><use href="#i-staff"/></svg>Personal</b><b>Utrustning</b><b>Externa firmor</b><b>Ekonomi</b></div><span class="x">×</span></header>
+          <div class="body">
+            <div class="cards">
+              <div class="team"><h3>Lag Röd <span class="pill" style="background:#6fd39b">I tjänst</span></h3><span class="note">Morgon 05–13 · gate A1–A2</span>
+                <div class="faces"><span class="face" style="background:#f3c9a5">AL</span><span class="face" style="background:#b97a55">MK</span><span class="face" style="background:#e0a983">JS</span><span class="face" style="background:#f7d9c0">EN</span><span class="face" style="background:#8a5a3c;color:#fff">OB</span></div>
+                <div class="bar2"><span>Trötthet</span><span><i style="width:64%;background:#f2b134"></i></span><span>64 %</span></div>
+                <div class="bar2"><span>Kompetens</span><span><i style="width:72%;background:#2bb3a6"></i></span><span class="stars">★★★</span></div>
+                <div style="display:flex;gap:6px"><span class="btn">Ge rast 20 min</span><span class="btn">Utbilda</span></div></div>
+              <div class="team"><h3>Lag Blå <span class="pill" style="background:#6fd39b">I tjänst</span></h3><span class="note">Dag 09–17 · gate A3–A4</span>
+                <div class="faces"><span class="face" style="background:#e0a983">LP</span><span class="face" style="background:#f3c9a5">SN</span><span class="face" style="background:#b97a55">FA</span><span class="face" style="background:#f7d9c0">KG</span></div>
+                <div class="bar2"><span>Trötthet</span><span><i style="width:38%;background:#6fd39b"></i></span><span>38 %</span></div>
+                <div class="bar2"><span>Kompetens</span><span><i style="width:48%;background:#2bb3a6"></i></span><span class="stars">★★</span></div>
+                <div style="display:flex;gap:6px"><span class="btn">Ge rast 20 min</span><span class="btn">Utbilda</span></div></div>
+              <div class="team"><h3>Lag Grön <span class="pill" style="background:#d8dde6">Ledig</span></h3><span class="note">Kväll 13–22 · fjärrplatser</span>
+                <div class="faces"><span class="face" style="background:#8a5a3c;color:#fff">RT</span><span class="face" style="background:#f3c9a5">HV</span><span class="face" style="background:#e0a983">ID</span></div>
+                <div class="bar2"><span>Trötthet</span><span><i style="width:8%;background:#6fd39b"></i></span><span>8 %</span></div>
+                <div class="bar2"><span>Kompetens</span><span><i style="width:86%;background:#2bb3a6"></i></span><span class="stars">★★★★</span></div>
+                <div style="display:flex;gap:6px"><span class="btn">Kalla in tidigt</span><span class="btn">Utbilda</span></div></div>
+            </div>
+            <div class="sec note" style="font:600 12px var(--font-display);letter-spacing:.1em;text-transform:uppercase">Söker jobb</div>
+            <div class="cands">
+              <div class="cand"><b>Lasse, 52</b><q>"Har lastat väskor sedan 1994. Långsam, men har aldrig tappat en enda."</q><span>Kompetens <span class="stars">★★★★</span> · Fart ★★</span><span>310 kr/h <span class="btn y" style="float:right">Anställ</span></span></div>
+              <div class="cand"><b>Nora, 23</b><q>"Snabb som en pushbacktraktor nedför. Vet inte riktigt vad en bandlastare är."</q><span>Kompetens <span class="stars">★</span> · Fart ★★★★</span><span>250 kr/h <span class="btn y" style="float:right">Anställ</span></span></div>
+              <div class="cand"><b>Kenta, 38</b><q>"Före detta skärgårdskapten. Säger 'babord' om allt."</q><span>Kompetens <span class="stars">★★★</span> · Fart ★★★</span><span>290 kr/h <span class="btn y" style="float:right">Anställ</span></span></div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- 4. UTRUSTNING -->
+      <div data-screen="equip" hidden>
+        <div class="abs dim"></div>
+        <section class="abs panel ops">
+          <header><h2><svg class="ico"><use href="#i-ops"/></svg>Driftcentralen</h2>
+            <div class="otabs"><b>Gateplanering</b><b>Personal</b><b class="on"><svg class="ico" style="width:16px;height:16px"><use href="#i-gear"/></svg>Utrustning</b><b>Externa firmor</b><b>Ekonomi</b></div><span class="x">×</span></header>
+          <div class="body">
+            <table class="eq">
+              <thead><tr><th>Fordon</th><th>Status</th><th>Slitage</th><th>Ägande</th><th>Nästa service</th><th></th></tr></thead>
+              <tbody>
+                <tr><td>Bandlastare #1</td><td><span class="pill" style="background:#e8634a;color:#fff">Trasig vid A2</span></td><td><span class="wear"><i style="width:91%;background:#e8634a"></i></span>91 %</td><td>Leasad · 1 400 kr/dag</td><td>Försenad 2 dagar</td><td><span class="btn y">Service nu</span></td></tr>
+                <tr><td>Bandlastare #2</td><td><span class="pill" style="background:#6fd39b">I drift · A4</span></td><td><span class="wear"><i style="width:44%;background:#f2b134"></i></span>44 %</td><td>Leasad · 1 400 kr/dag</td><td>Om 3 dagar</td><td><span class="btn">Köp ut · 180 000 kr</span></td></tr>
+                <tr><td>Bagagetåg #1</td><td><span class="pill" style="background:#d8dde6">Ledig · depå</span></td><td><span class="wear"><i style="width:22%;background:#6fd39b"></i></span>22 %</td><td>Egen</td><td>Om 6 dagar</td><td></td></tr>
+                <tr><td>Pushbacktraktor #1</td><td><span class="pill" style="background:#6fd39b">I drift · A1</span></td><td><span class="wear"><i style="width:67%;background:#f2b134"></i></span>67 %</td><td>Leasad · 2 600 kr/dag</td><td>I morgon</td><td><span class="btn">Planera service</span></td></tr>
+                <tr><td>Buss #1</td><td><span class="pill" style="background:#f2b134">På väg · R1</span></td><td><span class="wear"><i style="width:35%;background:#6fd39b"></i></span>35 %</td><td>Egen</td><td>Om 4 dagar</td><td></td></tr>
+              </tbody>
+            </table>
+            <div class="shop">
+              <div class="item"><b>Bandlastare</b><span>Lasta och lossa bagage</span><span class="price">220 000 kr</span><span>eller 1 400 kr/dag</span><span class="btn y">Köp</span></div>
+              <div class="item"><b>Pushbacktraktor</b><span>En per avgång. Flaskhals!</span><span class="price">640 000 kr</span><span>eller 2 600 kr/dag</span><span class="btn y">Köp</span></div>
+              <div class="item"><b>Trappbil</b><span>För fjärrplatser</span><span class="price">160 000 kr</span><span>eller 700 kr/dag</span><span class="btn y">Köp</span></div>
+              <div class="item"><b>Elektrisk buss</b><span>Tystare, nöjdare pax</span><span class="price">2 100 000 kr</span><span>eller 3 900 kr/dag</span><span class="btn">Låst: kräver depå 2</span></div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- 5. UPPGIFT -->
+      <div data-screen="task" hidden>
+        <div class="abs panel tools">
+          <h3>Verkstaden: välj verktyg</h3>
+          <div class="trow">
+            <div class="tool pick"><svg class="ico"><use href="#i-wrench"/></svg>Hydraulnyckel</div>
+            <div class="tool"><svg class="ico"><use href="#i-torque"/></svg>Momentnyckel</div>
+            <div class="tool"><svg class="ico"><use href="#i-fuse"/></svg>Säkring 40 A</div>
+          </div>
+          <span class="note">Felkoden säger "HYD-2": tryckfall i lyftcylindern. Välj fel och du får gå tillbaka.</span>
+        </div>
+        <div class="abs panel task">
+          <h3><svg class="ico"><use href="#i-wrench"/></svg>Laga bandlastaren vid A2</h3>
+          <div class="steps">
+            <div class="step done"><span class="n">✓</span>Läs felkoden</div>
+            <div class="step done"><span class="n">✓</span>Hämta verktyg</div>
+            <div class="step cur"><span class="n">3</span>Dra åt kopplingen</div>
+          </div>
+          <div class="meter" aria-label="Timingmätare"><span class="zone"></span><span class="needle"></span></div>
+          <div class="taskfoot"><span>Tryck <span class="key">F</span> när visaren är i det gröna. 2 av 3 klara.</span><span class="pill" style="background:#f2b134">NV 231 väntar 06:12</span></div>
+        </div>
+        <div class="abs panel radio"><svg class="ico"><use href="#i-radio"/></svg><span><em>LAG RÖD:</em> "Chefen, vi står still här. Väskorna börjar bli otåliga."</span></div>
+      </div>
+    </div>
+  </div>
+  <p class="note">Tanken bakom: <b>golvet</b> ska kännas levande, med radioanrop, varningar med nedräkning och en tydlig uppmaning vid figuren. <b>Driftcentralen</b> öppnas från menyraden längst ner och är där du fattar de stora besluten. <b>Uppgifterna</b> är korta, men kräver att du tänker och gör något själv.</p>
+</div>
+
+<script>
+(function () {
+  // Gantt-data för gateplaneringen
+  const H0 = 6, PX = 60; // 06:00, 60 px per timme
+  const x = (hm) => { const [h, m] = hm.split(':').map(Number); return (h - H0 + m / 60) * PX; };
+  const rows = {
+    A1: [['FJ 300', '06:40', '07:30', '#2bb3a6'], ['NV 328', '10:00', '11:05', '#3f6fd8'], ['SC 884', '18:30', '19:45', '#e8634a']],
+    A2: [['NV 307', '07:30', '08:35', '#3f6fd8'], ['NV 231', '13:40', '14:55', '#3f6fd8', 'sel'], ['NV 377', '17:45', '18:50', '#3f6fd8']],
+    A3: [['SC 814', '08:40', '09:45', '#e8634a'], ['NV 328', '10:50', '11:55', '#3f6fd8'], ['BB 635', '11:30', '12:35', '#27a3c9', 'ghost'], ['SC 849', '15:10', '16:15', '#e8634a']],
+    A4: [['BB 670', '16:40', '17:45', '#27a3c9'], ['NV 398', '21:10', '22:15', '#3f6fd8']],
+    R1: [['FJ 421', '09:20', '10:10', '#2bb3a6'], ['FJ 442', '12:40', '13:30', '#2bb3a6'], ['FJ 463', '16:00', '16:50', '#2bb3a6']],
+    R2: [['FJ 491', '19:30', '20:20', '#2bb3a6'], ['FJ 512', '23:10', '23:59', '#2bb3a6']],
+  };
+  let h = `<div class="ghead"><span></span><div class="hrs">${Array.from({ length: 17 }, (_, i) => `<span style="left:${i * PX}px">${String(H0 + i).padStart(2, '0')}</span>`).join('')}</div></div>`;
+  for (const [st, list] of Object.entries(rows)) {
+    h += `<div class="grow"><span class="lab">${st}<small>${st[0] === 'A' ? 'brygga' : 'buss'}</small></span><div class="tl">`;
+    if (st === 'A3') h += `<span class="clash" style="left:${x('11:30')}px;width:${x('11:55') - x('11:30')}px"></span>`;
+    list.forEach(([c, a, b, col, cls]) => { h += `<span class="blk ${cls || ''}" style="left:${x(a)}px;width:${Math.max(40, x(b) - x(a))}px;background:${col}">${c}<small>${a}–${b}</small></span>`; });
+    h += `</div></div>`;
+  }
+  h += `<span class="nowline" style="left:${70 + x('14:32')}px"></span>`;
+  document.getElementById('gantt').innerHTML = h;
+  // flikar och skalning
+  const stage = document.getElementById('stage'), frame = document.getElementById('frame');
+  const fit = () => { stage.style.transform = `scale(${frame.clientWidth / 1280})`; };
+  addEventListener('resize', fit); fit();
+  document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => {
+    document.querySelectorAll('.tabs button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    document.querySelectorAll('[data-screen]').forEach((s) => (s.hidden = s.dataset.screen !== b.dataset.s));
+  }));
+})();
+</script>

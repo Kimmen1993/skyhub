@@ -40,6 +40,9 @@ Spelet ska kräva strategi hela vägen och inte lösas på en timme och sedan ba
 | 2026-10-23 | **Ton**: humor och glimt i ögat (namn, texter, små situationer), men seriöst i grunden och aldrig barnsligt. | Kimm, fråga 4. |
 | 2026-10-23 | **Spelaren är både flygplats och handlingbolag** i kapitel 1. | Kimm, fråga 1. |
 | 2026-10-23 | **En speldag ≈ 20 minuter** i normal fart. | Kimm, fråga 2. |
+| 2026-10-24 | **Två sätt att spela som påverkar varandra**: *Driftcentralen* (gateplanering på tidslinje, personal, utrustning och service, bränsle och externa firmor, ekonomi) och *golvet* (problem blir korta hands-on-uppgifter på 15–40 s: hämta verktyg och laga, plocka FOD, eskortera vilsen passagerare, starta om brygga, marshalla in plan själv, hjälpa till att lasta). Bra planering ger färre bränder. | Kimm: v0.2 kändes inte interaktivt, "bara lite off". Diagnos: för få beslut, för enkla handlingar, pengar utan användning, tyst och stelt. |
+| 2026-10-24 | **Polish är en del av spelet**: ljud (motorer, tut, pling, tornets radio), reaktioner när man löser saker, tydligare UI med nedre menyrad, varningslista och minikarta. | Samma återkoppling: "saknar den sista touchen". |
+| 2026-10-24 | **Fri kamera**: vrid, luta och zooma oberoende av rörelseriktningen. Följer aldrig automatiskt med bilen. | Kimm. |
 | 2026-10-23 | Flygplatsen är **fiktiv**. Spelaren kan döpa den själv (t.ex. efter sin hemstad). | Frihet för spelaren, inga varumärkesproblem. |
 | 2026-10-23 | Spelet byggs i **samma ordning som det spelas**. Varje avdelning görs riktigt bra innan nästa påbörjas. | Undvika fem ytliga spel i stället för ett djupt. |
 | 2026-10-23 | Avdelningar som inte är upplåsta sköts av en **entreprenör som gör det halvbra**. Spelaren ser bristerna och vill ta över. | Ger naturlig motivation att låsa upp, i stället för en dyr knapp. |
@@ -98,7 +101,8 @@ Saker som byggs nu men måste hänga ihop med senare delar. Uppdatera när någo
   turnaround, pushback, start), turnaround med personal och utrustning som kör ut, entreprenörer (torn, terminal, tankning,
   catering, städ), förseningsorsaker, problem (manuellt, mekaniker eller personalen själva efter en stund), dagsrapport,
   översikt och golvläge med Follow me-bil, sparning och export. **Inte än:** byggläge, uppdrag, personalhantering, köp och leasing.
-- **Nästa (steg B)**: byggläge (flytta och bygga gates, taxilinjer, depåer) och köp/leasing av utrustning och personal. (v1 och v2 sparade som `mockups/stilskiss-v1.html` och `-v2.html`) för tecknad 3D med golvläge (`mockups/stilskiss.html`,
+- **Nästa**: UI-skiss (`mockups/ui-skiss.html`), sedan driftcentralen och golvuppgifterna, därefter ljud och polish.
+  Byggläget (flytta och bygga gates, taxilinjer, depåer) kommer efter det. (v1 och v2 sparade som `mockups/stilskiss-v1.html` och `-v2.html`) för tecknad 3D med golvläge (`mockups/stilskiss.html`,
   https://kimmen1993.github.io/skyhub/mockups/stilskiss.html). Väntar på Kimms omdöme om stil och känsla.
   Skissen är ritad helt i kod. Den riktiga versionen kan använda gratis modellpaket (CC0) för rikare figurer och fordon.
 
