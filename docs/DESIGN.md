@@ -101,7 +101,11 @@ Saker som byggs nu men måste hänga ihop med senare delar. Uppdatera när någo
   turnaround, pushback, start), turnaround med personal och utrustning som kör ut, entreprenörer (torn, terminal, tankning,
   catering, städ), förseningsorsaker, problem (manuellt, mekaniker eller personalen själva efter en stund), dagsrapport,
   översikt och golvläge med Follow me-bil, sparning och export. **Inte än:** byggläge, uppdrag, personalhantering, köp och leasing.
-- **Nästa**: UI-skiss (`mockups/ui-skiss.html`), sedan driftcentralen och golvuppgifterna, därefter ljud och polish.
+- **v0.3**: nytt gränssnitt efter UI-skissen (status, mätare, varningar med nedräkning, flygkort med tidslinje, tornets radio,
+  minikarta, menyrad) och driftcentralen (dragbar gateplanering med krockar, personal i lag med skift, trötthet,
+  kompetens, rast, utbildning och anställning, utrustning med slitage, service, köp och utköp, externa firmor med
+  skynda på och premiumavtal, ekonomi). Ekonomin är skärpt: fasta kostnader 85 000 kr/dygn, lägre avgifter.
+- **Nästa**: golvuppgifterna (verktyg, timing, plocka FOD, eskortera, marshalla), sedan ljud och polish.
   Byggläget (flytta och bygga gates, taxilinjer, depåer) kommer efter det. (v1 och v2 sparade som `mockups/stilskiss-v1.html` och `-v2.html`) för tecknad 3D med golvläge (`mockups/stilskiss.html`,
   https://kimmen1993.github.io/skyhub/mockups/stilskiss.html). Väntar på Kimms omdöme om stil och känsla.
   Skissen är ritad helt i kod. Den riktiga versionen kan använda gratis modellpaket (CC0) för rikare figurer och fordon.

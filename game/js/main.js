@@ -9,7 +9,7 @@
     set(v) { try { localStorage.setItem(SAVE_KEY, v); return true; } catch (e) { return false; } },
   };
 
-  const G = { s: null, speed: 1, mode: 0, tab: 'flights', sideOpen: innerWidth > 760, selected: null, modalOpen: false, driving: false, lastLog: 0, reportN: -1 };
+  const G = { s: null, speed: 1, mode: 0, opsOpen: false, opsTab: 'gates', selected: null, modalOpen: false, driving: false, lastLog: 0, reportN: -1 };
   const ui = SH.UI(G);
 
   // ---------- renderer, scen, ljus ----------
@@ -218,7 +218,7 @@
   const oc = V(10, 0, -45);
   const camPos = V(0, 0, 0), camLook = V(0, 0, 0);
   let modeK = 0;
-  function setMode(m) { G.mode = m; ui.hud(); }
+  function setMode(m) { G.mode = m; if (G.opsOpen) ui.closeOps(); ui.hud(); }
 
   // ---------- problem-bubblor ----------
   const bubbles = new Map();
@@ -276,12 +276,13 @@
   }
   addEventListener('keydown', (e) => {
     if (G.modalOpen || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (G.opsOpen && e.key !== 'Escape') return;
     const k = e.key.toLowerCase(); keys.add(k);
     if (k === 'f' || k === ' ') { e.preventDefault(); action(); }
     if (k === 'tab' || k === 'o') { e.preventDefault(); setMode(G.mode ? 0 : 1); }
     if (k === 'p') { G.speed = G.speed ? 0 : 1; ui.hud(); }
     if (k === '1' || k === '2' || k === '3') { G.speed = [1, 2, 4][+k - 1]; ui.hud(); }
-    if (k === 'escape') { G.selected = null; ui.card(); }
+    if (k === 'escape') { if (G.opsOpen) ui.closeOps(); else G.selected = null; }
   });
   addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
   addEventListener('blur', () => keys.clear());
@@ -315,7 +316,7 @@
     const ndc = new T.Vector2(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
     ray.setFromCamera(ndc, camera);
     const hits = ray.intersectObjects([...planes.values()].map((a) => a.g), true);
-    if (hits.length) { let o = hits[0].object; while (o && o.userData.fid == null) o = o.parent; if (o) { G.selected = o.userData.fid; ui.card(); ui.panel(true); return; } }
+    if (hits.length) { let o = hits[0].object; while (o && o.userData.fid == null) o = o.parent; if (o) { G.selected = o.userData.fid; return; } }
     const p = V(0, 0, 0); if (!ray.ray.intersectPlane(groundPlane, p)) return;
     const B = L.bounds; p.x = Math.max(B.x0, Math.min(B.x1, p.x)); p.z = Math.max(B.z0, Math.min(B.z1, p.z));
     if (G.mode === 1) {
@@ -331,12 +332,25 @@
   document.addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b) return;
     const d = b.dataset, s = G.s;
+    const pair = (v) => v.split(':');
     if (d.speed != null) { G.speed = +d.speed; ui.hud(); }
-    else if (d.tab) { G.tab = d.tab; ui.panel(true); }
-    else if (d.flight) { G.selected = +d.flight; ui.card(); ui.panel(true); const f = s.flights.find((x) => x.id === G.selected); if (f && G.mode === 1 && VISIBLE.has(f.phase)) { oc.x = f.x; oc.z = f.z; } }
-    else if (d.closeCard) { G.selected = null; ui.card(); }
-    else if (d.goto) gotoProblem(+d.goto);
-    else if (d.mech) { Sim.dispatchMechanic(s, +d.mech); ui.panel(true); }
+    else if (d.dock) { if (d.dock === 'floor') { if (G.opsOpen) ui.closeOps(); } else ui.openOps(d.dock); }
+    else if (d.otab) { G.opsTab = d.otab; ui.ops(true); ui.hud(); }
+    else if (d.unselect) G.selected = null;
+    else if (d.goto) { if (G.opsOpen) ui.closeOps(); gotoProblem(+d.goto); }
+    else if (d.mech) Sim.dispatchMechanic(s, +d.mech);
+    else if (d.rush) { const [fid, k] = pair(d.rush); Sim.rushExt(s, +fid, k); ui.ops(true); }
+    else if (d.break) { Sim.teamBreak(s, +d.break); ui.ops(true); }
+    else if (d.train) { Sim.teamTrain(s, +d.train); ui.ops(true); }
+    else if (d.hire) { const [c, tm] = pair(d.hire); Sim.hire(s, +c, +tm); ui.ops(true); }
+    else if (d.fire) { const [tm, m] = pair(d.fire); Sim.fire(s, +tm, +m); ui.ops(true); }
+    else if (d.shift) { const [tm, dir] = pair(d.shift); const team = s.teams.find((x) => x.id === +tm); if (team) { const a = Math.max(0, Math.min(24 - (team.shift[1] - team.shift[0]), team.shift[0] + +dir)); Sim.setShift(s, team.id, a, a + (team.shift[1] - team.shift[0])); } ui.ops(true); }
+    else if (d.service) { Sim.serviceUnit(s, +d.service); ui.ops(true); }
+    else if (d.buy) { if (Sim.buyUnit(s, d.buy)) ui.toast({ msg: `${D.equipment[d.buy].name} köpt!`, kind: 'good' }); ui.ops(true); }
+    else if (d.buyout) { Sim.buyOut(s, +d.buyout); ui.ops(true); }
+    else if (d.premium) { const [k, on] = pair(d.premium); Sim.setPremium(s, k, on === '1'); ui.ops(true); }
+    else if (d.move) { const [fid, st] = pair(d.move); Sim.reassign(s, +fid, st); ui.ops(true); }
+    else if (d.autoassign) { Sim.autoAssign(s); ui.ops(true); }
     else if (d.act === 'close') ui.close();
     else if (d.act === 'start') { const n = ($('nameIn').value || 'Norrvik').trim().slice(0, 22) || 'Norrvik'; newGame(n); ui.close(); }
     else if (d.act === 'save') { const ok = save(); const m = $('menuMsg'); if (m) m.textContent = ok ? 'Sparat.' : 'Webbläsaren tillåter inte sparning här. Använd Flytta sparfil.'; }
@@ -355,7 +369,11 @@
     }
   });
   $('modeBtn').addEventListener('click', () => setMode(G.mode ? 0 : 1));
-  $('sideBtn').addEventListener('click', () => { G.sideOpen = !G.sideOpen; ui.hud(); ui.panel(true); });
+  $('mini').addEventListener('click', (e) => {
+    const r = $('mini').getBoundingClientRect(); if (!G.miniToWorld) return;
+    const w = G.miniToWorld((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
+    oc.x = Math.max(-300, Math.min(300, w.x)); oc.z = Math.max(-160, Math.min(40, w.z)); if (G.opsOpen) ui.closeOps(); setMode(1);
+  });
   $('menuBtn').addEventListener('click', () => ui.menu());
   $('sprint').addEventListener('click', () => { sprintToggle = !sprintToggle; $('sprint').setAttribute('aria-pressed', String(sprintToggle)); });
   $('modal').addEventListener('click', (e) => { if (e.target.id === 'modal' && !$('nameIn')) ui.close(); });
@@ -368,7 +386,7 @@
     clearActors(); G.s = s; G.selected = null; G.reportN = s.report ? s.report.n : -1;
     G.lastLog = s.log.length ? s.log[s.log.length - 1].id : 0;
     if (!W) W = SH.World.build(scene, s.name); else W.setName(s.name);
-    lastSkyMin = -99; ui.hud(); ui.panel(true); ui.card();
+    lastSkyMin = -99; ui.tick(manager.position);
   }
   function newGame(name) { const s = Sim.create(name); setState(s); G.lastLog = 0; save(); }
   addEventListener('visibilitychange', () => { if (document.hidden) save(); });
@@ -382,7 +400,7 @@
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     const s = G.s;
     const eff = G.mode === 0 ? Math.min(G.speed, 1) : G.speed;
-    if (!G.modalOpen && eff > 0) Sim.advance(s, dt * D.MIN_PER_SEC * eff);
+    if (!G.modalOpen && !G.opsOpen && eff > 0) Sim.advance(s, dt * D.MIN_PER_SEC * eff);
     setSky(s.t);
 
     // kamera-vridning
@@ -396,7 +414,7 @@
     // chefen / bilen
     const dyn = dynColliders();
     const kW = keys.has('w') || keys.has('arrowup'), kS = keys.has('s') || keys.has('arrowdown'), kA = keys.has('a') || keys.has('arrowleft'), kD = keys.has('d') || keys.has('arrowright');
-    if (G.mode === 0 && !G.modalOpen) {
+    if (G.mode === 0 && !G.modalOpen && !G.opsOpen) {
       if (G.driving) {
         let thr = 0, steer = 0;
         if (kW || kS || kA || kD) { target = null; thr = (kW ? 1 : 0) - (kS ? 1 : 0); steer = (kA ? 1 : 0) - (kD ? 1 : 0); }
@@ -452,17 +470,26 @@
     // effekter, bubblor
     for (let i = stars.length - 1; i >= 0; i--) { const st = stars[i]; st.v.y -= 18 * dt; st.m.position.addScaledVector(st.v, dt); st.life -= dt; st.m.scale.setScalar(Math.max(0.01, st.life)); if (st.life <= 0) { scene.remove(st.m); stars.splice(i, 1); } }
     syncBubbles();
+    let ptxt = null;
+    if (G.mode === 0 && !G.opsOpen) {
+      const np = G.s.problems.find((p) => near(probPos(p)));
+      if (np) ptxt = { breakdown: 'Laga', bridge: 'Starta om bryggan', fod: 'Plocka upp skräpet', lost: 'Ta hand om passageraren' }[np.type];
+      else if (G.driving && Math.abs(carS.v) < 1.5) ptxt = 'Kliv ur';
+      else if (!G.driving && near(carS, 3.8)) ptxt = 'Kliv in i Follow me-bilen';
+    }
+    const pe = $('prompt'); pe.hidden = !ptxt;
+    if (ptxt) { if (pe.dataset.t !== ptxt) { pe.innerHTML = `<span class="key">F</span>${ptxt}`; pe.dataset.t = ptxt; } place(pe, me().clone().setY(G.driving ? 4.2 : 3.2)); pe.hidden = !ptxt || pe.hidden; }
     for (let i = honks.length - 1; i >= 0; i--) { const h = honks[i]; h.life -= dt; place(h.el, h.pos); if (h.life <= 0) { h.el.remove(); honks.splice(i, 1); } }
 
     // gränssnitt
     uiAcc += dt;
     if (uiAcc > 0.25) {
-      uiAcc = 0; ui.hud(); ui.panel(); ui.card();
+      uiAcc = 0; ui.tick(me());
       let help;
-      if (G.mode === 1) help = 'Översikt: dra för att flytta kartan · högerdra eller Q/E och Z/X: vrid och luta · scrolla: zooma · klicka på ett plan eller på marken';
-      else if (G.driving) help = 'Kör: W/S gas och broms · A/D styr · dra: vrid och luta kameran · <b>F</b> kliv ur';
-      else help = 'WASD eller klick: gå · <b>Shift</b> spring · dra eller Q/E och Z/X: vrid och luta · scrolla: zooma · <b>F</b> hjälp till' + (near(carS, 3.8) ? ' · <b>F</b> kliv in i bilen' : '');
-      ui.help(help);
+      if (G.mode === 1) help = 'Dra: flytta kartan · högerdra: vrid och luta · scrolla: zooma · klicka på marken för att hoppa ner';
+      else if (G.driving) help = 'W/S gas och broms · A/D styr · dra: vrid och luta kameran';
+      else help = 'WASD eller klick: gå · Shift: spring · dra: vrid och luta · scrolla: zooma · O: översikt';
+      $('help').innerHTML = help;
       s.log.forEach((l) => { if (l.id > G.lastLog) { if (l.kind !== 'info') ui.toast(l); G.lastLog = l.id; } });
       if (s.report && s.report.n !== G.reportN) { G.reportN = s.report.n; ui.report(s.report); save(); }
       const hour = Math.floor(s.t / 60); if (hour !== lastHour) { if (lastHour >= 0) save(); lastHour = hour; }

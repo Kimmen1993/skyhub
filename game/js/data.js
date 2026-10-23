@@ -8,8 +8,8 @@
 
     // Planskala: människa ≈ 1,9 enheter, A320 ≈ 27 enheter.
     aircraft: {
-      S: { id: 'S', model: 'ATR 72', seats: 70, scale: 0.8, nose: 9.0, len: 19, span: 22, turn: 40, landingFee: 4500, handlingFee: 9000, deboard: 8, board: 6, bags: 0.8 },
-      M: { id: 'M', model: 'A320', seats: 180, scale: 1.15, nose: 12.95, len: 27.6, span: 31, turn: 55, landingFee: 11000, handlingFee: 21000, deboard: 12, board: 9, bags: 1.0 },
+      S: { id: 'S', model: 'ATR 72', seats: 70, scale: 0.8, nose: 9.0, len: 19, span: 22, turn: 40, landingFee: 2200, handlingFee: 4200, deboard: 8, board: 6, bags: 0.8 },
+      M: { id: 'M', model: 'A320', seats: 180, scale: 1.15, nose: 12.95, len: 27.6, span: 31, turn: 55, landingFee: 5200, handlingFee: 9800, deboard: 12, board: 9, bags: 1.0 },
     },
 
     airlines: {
@@ -69,13 +69,38 @@
     },
 
     equipment: {
-      belt: { name: 'Bandlastare', count: 2, lease: 1400, color: 0xf2b134 },
-      train: { name: 'Bagagetåg', count: 2, lease: 900, color: 0xf2b134 },
-      tug: { name: 'Pushbacktraktor', count: 1, lease: 2600, color: 0xf2b134 },
-      stairs: { name: 'Trappa', count: 2, lease: 700, color: 0xe6eaf0 },
-      bus: { name: 'Buss', count: 1, lease: 1800, color: 0x2bb3a6 },
+      belt: { name: 'Bandlastare', count: 2, lease: 1400, price: 220000, desc: 'Lastar och lossar bagage.' },
+      train: { name: 'Bagagetåg', count: 2, lease: 900, price: 140000, desc: 'Kör väskor mellan bagagehallen och planet.' },
+      tug: { name: 'Pushbacktraktor', count: 1, lease: 2600, price: 640000, desc: 'En per avgång. Lätt att det blir en flaskhals!' },
+      stairs: { name: 'Trappbil', count: 2, lease: 700, price: 160000, desc: 'Behövs vid fjärrplatser.' },
+      bus: { name: 'Buss', count: 1, lease: 1800, price: 1400000, desc: 'Kör passagerare till och från fjärrplatser.' },
     },
-    staff: { ramp: { name: 'Ramppersonal', count: 10, wage: 280 } }, // kr per timme
+    service: { cost: 3500, minutes: 45 },
+    // Personal i lag med skift (timmar). Lön i kr per timme, betalas bara under skiftet.
+    teams: [
+      { name: 'Lag Röd', color: '#e8634a', shift: [5, 13], size: 5 },
+      { name: 'Lag Blå', color: '#3f6fd8', shift: [9, 17], size: 4 },
+      { name: 'Lag Grön', color: '#2bb3a6', shift: [14, 24], size: 4 },
+    ],
+    training: { cost: 15000, minutes: 120 },
+    names: ['Anna', 'Lasse', 'Mira', 'Kenta', 'Nora', 'Omar', 'Sanna', 'Jonte', 'Elin', 'Farah', 'Pelle', 'Ida', 'Kalle', 'Leila', 'Rut', 'Hampus', 'Siv', 'Ahmed', 'Tove', 'Bosse', 'Greta', 'Juha', 'Maja', 'Viktor', 'Noor', 'Stig', 'Linnea', 'Dragan', 'Ebba', 'Arvid'],
+    quotes: [
+      ['Har lastat väskor sedan 1994. Långsam, men har aldrig tappat en enda.', 4, 2],
+      ['Snabb som en pushbacktraktor nedför. Vet inte riktigt vad en bandlastare är.', 1, 4],
+      ['Före detta skärgårdskapten. Säger "babord" om allt.', 3, 3],
+      ['Har körkort för truck, buss och, enligt egen utsago, "det mesta".', 3, 3],
+      ['Pratar med flygplanen. De verkar lyssna.', 4, 2],
+      ['Nyss klar med utbildningen. Mycket entusiastisk. Kanske för entusiastisk.', 2, 4],
+      ['Jobbade tidigare på en färja. Sjösjuk, så det blev flyg i stället.', 2, 3],
+      ['Har en egen reflexväst. I tre färger.', 3, 3],
+      ['Lugn som en filbunke. Ingenting stressar. Inte ens försenade plan.', 4, 1],
+    ],
+    firms: {
+      fuel: { premium: 4000, rush: 3000 },
+      catering: { premium: 3000, rush: 3000 },
+      cleaning: { premium: 2000, rush: 2000 },
+    },
+    callsign: { FJ: 'Fjällflyg', NV: 'Nordvind', SC: 'Sol Charter', BB: 'Baltic' },
 
     contractors: {
       atc: { name: 'Nordflyg Navigation', spacing: 6, note: 'Försiktiga. Lite för stora avstånd mellan landningarna.' },
@@ -85,7 +110,8 @@
       cleaning: { name: 'Glans Städ AB', late: 0.1 },
     },
 
-    money: 1500000,
+    money: 900000,
+    fixedCost: 85000, // kr per dygn: hyra till kommunen, el, försäkringar, kaffe
     compensation: 900, // kr per försenad minut över 15 min som beror på plattan
 
     problems: {

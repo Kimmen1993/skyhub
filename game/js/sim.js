@@ -19,6 +19,7 @@
   const fmt = (t) => { const m = ((Math.floor(t) % DAY) + DAY) % DAY; return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
   const nid = (s) => ++s.ids;
   const P = (x, z, v, y) => ({ x, z, v, y: y || 0 });
+  function radio(s, msg) { log(s, msg, 'radio'); }
   function log(s, msg, kind) {
     s.log.push({ id: nid(s), t: Math.floor(s.t), msg, kind: kind || 'info' });
     if (s.log.length > 100) s.log.splice(0, s.log.length - 100);
@@ -102,23 +103,29 @@
       money: D.money, safety: 100, rep: 50,
       happy: Object.fromEntries(Object.keys(D.airlines).map((k) => [k, 70])),
       flights: [], units: [], ext: [], problems: [],
-      staff: { ramp: D.staff.ramp.count, busy: 0 },
+      staff: { busy: 0 }, teams: [], candidates: [], firms: { fuel: false, catering: false, cleaning: false },
       standOcc: {}, rwy: null, lastApproach: -99,
       day: null, history: [], log: [],
     };
     Object.entries(D.equipment).forEach(([type, e]) => {
       for (let i = 0; i < e.count; i++) {
         const d = { x: L.depot.x - 6 + i * 4 + (type === 'bus' ? 10 : 0), z: L.depot.z - 4 - Object.keys(D.equipment).indexOf(type) * 5 };
-        s.units.push({ id: nid(s), type, x: d.x, z: d.z, h: 0, state: 'idle', job: null, path: null, pp: 0, broken: false });
+        s.units.push({ id: nid(s), type, x: d.x, z: d.z, h: 0, state: 'idle', job: null, path: null, pp: 0, broken: false, wear: 15 + Math.round(rnd(s) * 45), owned: false, num: i + 1 });
       }
     });
+    D.teams.forEach((tm, i) => {
+      const team = { id: nid(s), name: tm.name, color: tm.color, shift: tm.shift.slice(), fatigue: 10, breakUntil: null, trainUntil: null, members: [] };
+      for (let k = 0; k < tm.size; k++) team.members.push(newMember(s));
+      s.teams.push(team);
+    });
+    refreshCandidates(s);
     s.day = newDayStats(0);
     scheduleDay(s, 0, s.t);
     log(s, `Välkommen till ${s.name} flygplats! Du är ny chef för plattan.`, 'good');
     log(s, `Tornet sköts av ${D.contractors.atc.name} och terminalen av ${D.contractors.terminal.name}. De gör det … sådär.`, 'info');
     return s;
   }
-  function newDayStats(n) { return { n, inc: { landing: 0, handling: 0, parking: 0 }, cost: { staff: 0, lease: 0, comp: 0, other: 0 }, deps: 0, ontime: 0, delayMin: 0, cause: { ramp: 0, terminal: 0, ext: 0, atc: 0, inbound: 0 }, diverted: 0 }; }
+  function newDayStats(n) { return { n, inc: { landing: 0, handling: 0, parking: 0 }, cost: { staff: 0, lease: 0, fixed: 0, comp: 0, other: 0 }, deps: 0, ontime: 0, delayMin: 0, cause: { ramp: 0, terminal: 0, ext: 0, atc: 0, inbound: 0 }, diverted: 0 }; }
 
   function scheduleDay(s, dayNo, notBefore) {
     const made = [];
@@ -159,6 +166,122 @@
     });
   }
 
+  // ---------- personal ----------
+  function newMember(s, q) {
+    const name = D.names[Math.floor(rnd(s) * D.names.length)];
+    const skill = q ? q[1] : 2 + Math.round(rnd(s) * 2), speed = q ? q[2] : 2 + Math.round(rnd(s) * 2);
+    return { id: nid(s), name, skill, speed, wage: 220 + skill * 18 + speed * 8, quote: q ? q[0] : null };
+  }
+  function refreshCandidates(s) {
+    s.candidates = [];
+    const used = new Set();
+    while (s.candidates.length < 3) { const i = Math.floor(rnd(s) * D.quotes.length); if (used.has(i)) continue; used.add(i); s.candidates.push(newMember(s, D.quotes[i])); }
+  }
+  const hourOf = (t) => (Math.floor(t) % DAY) / 60;
+  const onShift = (tm, t) => { const h = hourOf(t); return h >= tm.shift[0] && h < tm.shift[1]; };
+  const teamActive = (tm, t) => onShift(tm, t) && !(tm.breakUntil && t < tm.breakUntil) && !(tm.trainUntil && t < tm.trainUntil);
+  function staffAvail(s) { const t = s.t; return s.teams.filter((tm) => teamActive(tm, t)).reduce((a, tm) => a + tm.members.length, 0); }
+  function workFactor(s) {
+    const act = s.teams.filter((tm) => teamActive(tm, s.t) && tm.members.length);
+    if (!act.length) return 1;
+    const fat = act.reduce((a, tm) => a + tm.fatigue, 0) / act.length;
+    const skill = act.reduce((a, tm) => a + tm.members.reduce((b, m) => b + m.skill + m.speed * 0.5, 0) / tm.members.length, 0) / act.length;
+    return clamp(1 + (fat / 100) * 0.6 - (skill - 4.5) * 0.07, 0.7, 1.7);
+  }
+  function teamTick(s, t) {
+    const avail = staffAvail(s), util = avail ? clamp(s.staff.busy / avail, 0, 1) : 0;
+    s.teams.forEach((tm) => {
+      if (tm.breakUntil && t < tm.breakUntil) tm.fatigue -= 1.5;
+      else if (onShift(tm, t) && !(tm.trainUntil && t < tm.trainUntil)) { tm.fatigue += 0.03 + 0.14 * util; spend(s, 'staff', tm.members.reduce((a, m) => a + m.wage, 0) / 60); }
+      else tm.fatigue -= 0.35;
+      tm.fatigue = clamp(tm.fatigue, 0, 100);
+      if (tm.trainUntil && t === tm.trainUntil) { tm.members.forEach((m) => (m.skill = Math.min(5, m.skill + 1))); log(s, `${tm.name} är klara med utbildningen. Lite vassare nu.`, 'good'); }
+      if (onShift(tm, t) && tm.fatigue > 85 && (t % 60 === 30)) log(s, `${tm.name} är väldigt trötta. Ge dem en rast innan något går fel.`, 'event');
+    });
+  }
+  function teamBreak(s, id) { const tm = s.teams.find((x) => x.id === id); if (tm && !(tm.breakUntil > s.t)) { tm.breakUntil = Math.floor(s.t) + 20; log(s, `${tm.name} tar 20 minuters rast. Kaffet är slut, som vanligt.`, 'info'); } }
+  function teamTrain(s, id) {
+    const tm = s.teams.find((x) => x.id === id); if (!tm || tm.trainUntil > s.t || s.money < D.training.cost) return false;
+    tm.trainUntil = Math.floor(s.t) + D.training.minutes; spend(s, 'other', D.training.cost);
+    log(s, `${tm.name} går på utbildning i två timmar.`, 'info'); return true;
+  }
+  function hire(s, candId, teamId) {
+    const c = s.candidates.find((x) => x.id === candId), tm = s.teams.find((x) => x.id === teamId);
+    if (!c || !tm) return; tm.members.push(c); s.candidates = s.candidates.filter((x) => x !== c);
+    log(s, `${c.name} börjar i ${tm.name}. Välkommen!`, 'good');
+  }
+  function fire(s, teamId, memberId) {
+    const tm = s.teams.find((x) => x.id === teamId); if (!tm || tm.members.length <= 1) return;
+    const m = tm.members.find((x) => x.id === memberId); tm.members = tm.members.filter((x) => x !== m);
+    if (m) log(s, `${m.name} har slutat i ${tm.name}.`, 'info');
+  }
+  function setShift(s, teamId, a, b) { const tm = s.teams.find((x) => x.id === teamId); if (tm) tm.shift = [clamp(a, 0, 23), clamp(b, a + 4, 24)]; }
+
+  // ---------- utrustning ----------
+  function buyUnit(s, type) {
+    const e = D.equipment[type]; if (s.money < e.price) return false;
+    spend(s, 'other', e.price);
+    const n = s.units.filter((u) => u.type === type).length + 1;
+    s.units.push({ id: nid(s), type, x: L.depot.x, z: L.depot.z, h: 0, state: 'idle', job: null, path: null, pp: 0, broken: false, wear: 0, owned: true, num: n });
+    log(s, `Ny ${e.name.toLowerCase()} levererad till depån.`, 'good'); return true;
+  }
+  function buyOut(s, id) {
+    const u = s.units.find((x) => x.id === id); if (!u || u.owned) return false;
+    const price = Math.round(D.equipment[u.type].price * 0.75); if (s.money < price) return false;
+    spend(s, 'other', price); u.owned = true; log(s, `${D.equipment[u.type].name} #${u.num} är nu din egen. Ingen mer leasing.`, 'good'); return true;
+  }
+  function serviceUnit(s, id) {
+    const u = s.units.find((x) => x.id === id); if (!u || u.state !== 'idle' && u.state !== 'return' || u.serviceUntil) return false;
+    u.state = 'service'; u.job = null; u.path = vehRoute(u, { x: L.depot.x + 4, z: L.depot.z - 8, h: 0 }); u.dest = { x: L.depot.x + 4, z: L.depot.z - 8, h: 0 };
+    u.serviceUntil = Math.floor(s.t) + D.service.minutes; spend(s, 'other', D.service.cost);
+    return true;
+  }
+
+  // ---------- externa firmor ----------
+  function rushExt(s, fid, task) {
+    const f = s.flights.find((x) => x.id === fid); if (!f || !f.tasks) return false;
+    const x = f.tasks[task], c = D.firms[x.ext];
+    if (!(x.lateUntil && (x.lateUntil === 'pending' || x.lateUntil > s.t))) return false;
+    x.lateUntil = Math.floor(s.t) + 2; spend(s, 'other', c.rush);
+    log(s, `${D.contractors[x.ext].name}: "Ja ja, vi kommer!" (+${c.rush.toLocaleString('sv-SE')} kr)`, 'radio'); return true;
+  }
+  function setPremium(s, firm, on) { s.firms[firm] = !!on; log(s, `${D.contractors[firm].name}: ${on ? 'premiumavtal tecknat. De lovar att komma i tid.' : 'tillbaka till standardavtal.'}`, 'info'); }
+
+  // ---------- gateplanering ----------
+  function reassign(s, fid, stand) {
+    const f = s.flights.find((x) => x.id === fid);
+    if (!f || !['sched', 'holding'].includes(f.phase) || !standById(stand)) return false;
+    f.stand = stand; f._paths = null; return true;
+  }
+  function plan(s) {
+    const rows = {};
+    L.stands.forEach((st) => (rows[st.id] = []));
+    s.flights.filter((f) => !['gone', 'diverted', 'takeoff', 'hold', 'taxiOut'].includes(f.phase)).forEach((f) => {
+      const a = f.onBlock || f.sta, b = f.phase === 'pushback' || f.offBlock ? (f.offBlock || f.std) : Math.max(f.std, s.t);
+      rows[f.stand].push({ f, a, b, locked: !['sched', 'holding'].includes(f.phase) });
+    });
+    Object.values(rows).forEach((list) => {
+      list.sort((x, y) => x.a - y.a);
+      for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+        if (list[j].a < list[i].b + 10) { list[i].clash = list[j].clash = true; list[j].clashWith = list[i].f; }
+      }
+    });
+    return rows;
+  }
+  function autoAssign(s) {
+    const fl = s.flights.filter((f) => f.phase === 'sched');
+    fl.forEach((f) => (f.stand = null));
+    const fixed = s.flights.filter((f) => f.stand);
+    const busy = {}; L.stands.forEach((st) => (busy[st.id] = []));
+    fixed.forEach((f) => busy[f.stand].push([(f.onBlock || f.sta) - 10, Math.max(f.std, s.t) + 15]));
+    fl.sort((a, b) => a.sta - b.sta).forEach((f) => {
+      const order = L.stands.slice().sort((a, b) => (f.size === 'S' ? a.contact - b.contact : b.contact - a.contact));
+      const free = order.find((st) => busy[st.id].every(([a, b]) => f.std + 15 <= a || f.sta - 10 >= b)) || order.reduce((best, st) => (Math.max(0, ...busy[st.id].map((x) => x[1])) < Math.max(0, ...busy[best.id].map((x) => x[1])) ? st : best), order[0]);
+      f.stand = free.id; f._paths = null; busy[free.id].push([f.sta - 10, f.std + 15]);
+    });
+    log(s, 'Gateplanen är omfördelad automatiskt.', 'info');
+  }
+
   // ---------- turnaround-uppgifter ----------
   const TASKS = ['chocks', 'connect', 'deboard', 'unload', 'fuel', 'clean', 'catering', 'load', 'board', 'close', 'push'];
   const TASK_NAME = { chocks: 'Stoppklossar', connect: 'Brygga/trappa', deboard: 'Avstigning', unload: 'Lossa bagage', fuel: 'Tankning', clean: 'Städning', catering: 'Catering', load: 'Lasta bagage', board: 'Boarding', close: 'Stäng dörrar', push: 'Pushback' };
@@ -181,14 +304,14 @@
     Object.values(T).forEach((x) => Object.assign(x, { st: 'wait', start: null, end: null, held: [], staffHeld: 0, lateUntil: null, paused: false }));
     ['fuel', 'catering', 'clean'].forEach((k) => {
       const c = D.contractors[T[k].ext];
-      if (rnd(s) < c.late) T[k].lateUntil = 'pending';
+      if (rnd(s) < c.late * (s.firms[T[k].ext] ? 0.35 : 1)) T[k].lateUntil = 'pending';
     });
     f.tasks = T;
   }
 
   function freeUnit(s, type, near) {
     let best = null, bd = Infinity;
-    s.units.forEach((u) => { if (u.type === type && (u.state === 'idle' || u.state === 'return') && !u.broken) { const d = Math.hypot(u.x - near.x, u.z - near.z); if (d < bd) { bd = d; best = u; } } });
+    s.units.forEach((u) => { if (u.type === type && (u.state === 'idle' || u.state === 'return') && !u.broken && !u.serviceUntil) { const d = Math.hypot(u.x - near.x, u.z - near.z); if (d < bd) { bd = d; best = u; } } });
     return best;
   }
   function sendUnit(s, u, spot, job) {
@@ -217,7 +340,7 @@
           spawnExt(s, f, k); x.st = 'travel'; x.start = t; continue;
         }
         const needStaff = x.staff || 0;
-        if (s.staff.ramp - s.staff.busy < needStaff) continue;
+        if (staffAvail(s) - s.staff.busy < needStaff) continue;
         const sd = standById(f.stand), near = { x: sd.x, z: centerZ(f.size) };
         const picks = [];
         for (const type of x.units || []) { const u = freeUnit(s, type, near); if (!u || picks.includes(u)) break; picks.push(u); }
@@ -231,7 +354,7 @@
         if (!runOk) continue;
         if (x.ext) { const e = s.ext.find((v) => v.f === f.id && v.task === k); if (e && e.state === 'work') { x.st = 'run'; x.end = t + x.dur; } continue; }
         const units = x.held.map((id) => s.units.find((u) => u.id === id));
-        if (units.every((u) => u.state === 'work')) { x.st = 'run'; x.end = t + x.dur; if (k === 'push') beginPush(s, f); }
+        if (units.every((u) => u.state === 'work')) { x.st = 'run'; x.dur = Math.max(1, Math.round(x.dur * (x.staff ? workFactor(s) : 1))); x.end = t + x.dur; if (k === 'push') beginPush(s, f); }
         continue;
       }
       if (x.st === 'run') {
@@ -423,7 +546,7 @@
     const t = Math.floor(s.t);
     if (s.problems.length >= 2) return;
     const opts = [];
-    const working = s.units.filter((u) => u.state === 'work' && !u.broken && (u.type === 'belt' || u.type === 'tug') && u.job);
+    const working = s.units.filter((u) => u.state === 'work' && !u.broken && u.type === 'belt' && u.job);
     if (working.filter((u) => u.type === 'belt').length) opts.push('breakdown');
     const atContact = s.flights.filter((f) => f.phase === 'stand' && standById(f.stand).contact && f.tasks && (f.tasks.deboard.st === 'run' || f.tasks.board.st === 'run'));
     if (atContact.length) opts.push('bridge');
@@ -446,6 +569,12 @@
     }
     s.problems.push(p);
     log(s, problemTitle(p), 'event');
+  }
+  function breakUnit(s, u) {
+    u.broken = true;
+    const f = s.flights.find((x) => x.id === u.job.f);
+    const p = { id: nid(s), type: 'breakdown', since: Math.floor(s.t), fixAt: null, unit: u.id, x: u.x, z: u.z, stand: f ? f.stand : '', what: `${D.equipment[u.type].name} #${u.num}` };
+    s.problems.push(p); log(s, problemTitle(p), 'event');
   }
   const problemTitle = (p) => D.problems[p.type].title(p);
   function fixProblem(s, id, how) {
@@ -476,8 +605,15 @@
     const t = Math.floor(s.t);
     if (t % DAY === 0) newDay(s, t / DAY);
     // kostnader
-    spend(s, 'staff', (s.staff.ramp * D.staff.ramp.wage) / 60);
-    spend(s, 'lease', Object.entries(D.equipment).reduce((a, [k, e]) => a + s.units.filter((u) => u.type === k).length * e.lease, 0) / DAY);
+    teamTick(s, t);
+    spend(s, 'fixed', D.fixedCost / DAY);
+    Object.entries(s.firms).forEach(([k, on]) => { if (on) spend(s, 'other', D.firms[k].premium / DAY); });
+    spend(s, 'lease', s.units.reduce((a, u) => a + (u.owned ? 0 : D.equipment[u.type].lease), 0) / DAY);
+    s.units.forEach((u) => {
+      if (u.state === 'work') u.wear = Math.min(100, u.wear + 0.03); else if (u.path) u.wear = Math.min(100, u.wear + 0.008);
+      if (u.serviceUntil && t >= u.serviceUntil) { u.serviceUntil = null; u.wear = 8; u.state = 'idle'; log(s, `${D.equipment[u.type].name} #${u.num} är klar från service.`, 'info'); }
+      if (u.state === 'work' && u.job && !u.broken && u.wear > 60 && rnd(s) < (u.wear - 60) / 40 * 0.004 && s.problems.length < 3) breakUnit(s, u);
+    });
     if (t % 60 === 0) {
       s.safety = clamp(s.safety + 1, 0, 100);
       const active = s.flights.some((f) => f.phase === 'stand');
@@ -500,6 +636,7 @@
         const atcOk = t - s.lastApproach >= D.contractors.atc.spacing && !s.flights.some((g) => g.phase === 'takeoff' && s.rwy === g.id);
         if (standFree && atcOk) {
           f.phase = 'approach'; s.lastApproach = t; s.standOcc[f.stand] = f.id;
+          radio(s, `${D.callsign[f.al]} ${f.code.split(' ')[1]}, fri att landa bana 09.${f.holdMin > 10 ? ' Tack för ert tålamod.' : rnd(s) < 0.2 ? ' Lite sent, som vanligt.' : ''}`);
           setPath(f, f._paths.app);
         } else {
           if (f.phase === 'sched') { f.phase = 'holding'; f.holdSince = t; }
@@ -515,7 +652,7 @@
       if (f.phase === 'stand' && f.tasks) taskTick(s, f, t);
       if (f.phase === 'hold') {
         const soon = s.flights.some((g) => g.phase === 'approach');
-        if (!s.rwy && !soon && t - (s.lastDep || -99) >= 2) { s.rwy = f.id; s.lastDep = t; f.phase = 'takeoff'; setPath(f, takeoffPath()); }
+        if (!s.rwy && !soon && t - (s.lastDep || -99) >= 2) { s.rwy = f.id; s.lastDep = t; f.phase = 'takeoff'; setPath(f, takeoffPath()); radio(s, `${D.callsign[f.al]} ${f.code.split(' ')[1]}, fri att starta bana 09. Trevlig resa till ${f.to}.`); }
       }
       // försening: logga orsak varje minut efter avgångstid
       if (t >= f.std && !f.offBlock && !['diverted', 'gone'].includes(f.phase)) {
@@ -535,6 +672,7 @@
     s.report = s.history[s.history.length - 1];
     log(s, `Dag ${d.n + 1} klar. Punktlighet ${otp} %, resultat ${Math.round(inc - cost).toLocaleString('sv-SE')} kr.`, inc >= cost ? 'good' : 'bad');
     s.day = newDayStats(dayNo);
+    refreshCandidates(s);
     scheduleDay(s, dayNo, s.t - 31);
   }
 
@@ -555,6 +693,15 @@
     const s = typeof json === 'string' ? JSON.parse(json) : json;
     if (!s || s.v !== 2) throw new Error('Sparfilen känns inte igen.');
     s.units.concat(s.ext).forEach((u) => { if (u.path && u.dest) u.path = vehRoute(u, u.dest); });
+    // uppgradera äldre sparfiler (v0.2 utan lag, slitage och firmor)
+    if (!s.teams || !s.teams.length) {
+      s.teams = []; s.staff = { busy: s.staff ? s.staff.busy || 0 : 0 };
+      D.teams.forEach((tm) => { const team = { id: nid(s), name: tm.name, color: tm.color, shift: tm.shift.slice(), fatigue: 10, breakUntil: null, trainUntil: null, members: [] }; for (let k = 0; k < tm.size; k++) team.members.push(newMember(s)); s.teams.push(team); });
+      refreshCandidates(s);
+    }
+    if (!s.firms) s.firms = { fuel: false, catering: false, cleaning: false };
+    const cnt = {};
+    s.units.forEach((u) => { if (u.wear == null) u.wear = 30; if (u.owned == null) u.owned = false; cnt[u.type] = (cnt[u.type] || 0) + 1; if (!u.num) u.num = cnt[u.type]; });
     return s;
   }
 
@@ -586,7 +733,7 @@
         if (x.notBefore === 'std' && t < f.std) txt = `Väntar till ${fmt(f.std)}`;
         else if (x.ext && x.lateUntil && t < x.lateUntil) txt = `${D.contractors[x.ext].name} är sena`;
         else if (k === 'push' && !pushClear(s, f)) txt = 'Väntar på fri taxilinje';
-        else if ((x.staff || 0) > s.staff.ramp - s.staff.busy) txt = 'Ingen ledig personal';
+        else if ((x.staff || 0) > staffAvail(s) - s.staff.busy) txt = staffAvail(s) ? 'Ingen ledig personal' : 'Inget lag i tjänst';
         else txt = `Ingen ledig ${(x.units || []).map((u) => D.equipment[u].name.toLowerCase()).join(' eller ')}`;
       } else if (x.st === 'travel') txt = x.ext ? `${D.contractors[x.ext].name} på väg` : 'Utrustning på väg';
       else if (x.paused) txt = 'Stoppad av ett problem';
@@ -598,5 +745,6 @@
     });
   }
 
-  SH.Sim = { create, load, serialize, advance, fmt, status, taskInfo, fixProblem, dispatchMechanic, safetyHit, problemTitle, standById, centerZ, workSpot, DAY, SPD, TASK_NAME };
+  SH.Sim = { create, load, serialize, advance, fmt, status, taskInfo, fixProblem, dispatchMechanic, safetyHit, problemTitle, standById, centerZ, workSpot, DAY, SPD, TASK_NAME,
+    staffAvail, workFactor, onShift, teamActive, teamBreak, teamTrain, hire, fire, setShift, buyUnit, buyOut, serviceUnit, rushExt, setPremium, reassign, plan, autoAssign, delayCause };
 })();
