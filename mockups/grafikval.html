@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="sv">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SkyHub grafikval</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=B612:wght@400;700&family=B612+Mono:wght@400;700&display=swap">
+<style>
+/* Layout: en kolumn, tre likvärdiga "provbilder" av samma flygplats under varandra, beslutsruta sist. */
+:root {
+  --bg: #eef1f5;
+  --surface: #ffffff;
+  --fg: #172030;
+  --muted: #5d6a7f;
+  --line: #d5dbe5;
+  --amber: #b97800;
+  --pro: #1f7a4a;
+  --con: #b23b3b;
+  --font-ui: "B612", "Segoe UI", system-ui, sans-serif;
+  --font-data: "B612 Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #0d131d; --surface: #141c29; --fg: #e3e9f2; --muted: #8a97ad; --line: #26324a; --amber: #ffb627; --pro: #5fd38d; --con: #ff8080; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #0d131d; --surface: #141c29; --fg: #e3e9f2; --muted: #8a97ad; --line: #26324a; --amber: #ffb627; --pro: #5fd38d; --con: #ff8080; color-scheme: dark; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-ui); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-block: 28px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 36px; }
+header { display: flex; flex-direction: column; gap: 10px; max-width: 68ch; }
+.eyebrow { font-family: var(--font-data); font-size: 12px; letter-spacing: 0.2em; color: var(--amber); }
+h1 { margin: 0; font-size: clamp(26px, 4vw, 36px); line-height: 1.15; text-wrap: balance; }
+h2 { margin: 0; font-size: 22px; text-wrap: balance; display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+h2 .tag { font-family: var(--font-data); font-size: 12px; letter-spacing: 0.12em; color: var(--amber); }
+p { margin: 0; max-width: 68ch; }
+.muted { color: var(--muted); }
+.option { display: flex; flex-direction: column; gap: 14px; }
+.stage { position: relative; width: 100%; max-width: 100%; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: #6f8f5f; border: 1px solid var(--line); touch-action: none; }
+.stage canvas { width: 100%; height: 100%; display: block; }
+.stage .ctl { position: absolute; right: max(10px, env(safe-area-inset-right, 0px)); bottom: 10px; display: flex; gap: 6px; }
+.stage .ctl button, .stage .note { font: 12px var(--font-data); background: rgba(13,19,29,0.78); color: #f1f4f8; border: 1px solid rgba(255,255,255,0.18); border-radius: 6px; padding: 6px 10px; }
+.stage .ctl button { cursor: pointer; }
+.stage .ctl button:focus-visible { outline: 2px solid #ffb627; outline-offset: 2px; }
+.stage .note { position: absolute; left: 10px; top: 10px; pointer-events: none; }
+.facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.facts > div { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.facts h3 { margin: 0; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.facts ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.pro li::marker { color: var(--pro); }
+.con li::marker { color: var(--con); }
+.meter { display: flex; gap: 4px; }
+.meter i { width: 22px; height: 7px; border-radius: 2px; background: var(--line); }
+.meter i.on { background: var(--amber); }
+.mrow { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; font-size: 13px; }
+.verdict { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 22px; display: flex; flex-direction: column; gap: 12px; }
+.verdict h2 { font-size: 20px; }
+.verdict ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 68ch; }
+@media (max-width: 760px) { .facts { grid-template-columns: 1fr; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">SKYHUB · VAL AV GRAFIK</span>
+    <h1>Tre sätt att få flygplatsen att se ut som en flygplats</h1>
+    <p class="muted">Alla tre bilderna visar samma flygplats: en terminal med glasfasad och fyra flygbryggor, ett flygledartorn, en hangar, bana 09/27, taxibana och parkering. Det här är snabba skisser, inte färdig grafik. Rotera och zooma gärna i dem.</p>
+  </header>
+
+  <section class="option" id="a">
+    <h2><span class="tag">SPÅR A</span>3D med fri kamera</h2>
+    <div class="stage" id="stageA"><canvas id="cA" aria-label="3D-vy av flygplatsen"></canvas><span class="note">Dra för att rotera · scrolla eller nyp för att zooma</span></div>
+    <div class="facts">
+      <div><h3>Fördelar</h3><ul class="pro"><li>Ser mest ut som en riktig flygplats, med ljus, skuggor och djup.</li><li>Man kan zooma in på en gate och följa ett plan.</li><li>Terminaler, torn och hangarer blir lätta att känna igen.</li></ul></div>
+      <div><h3>Nackdelar</h3><ul class="con"><li>Mer arbete per ny byggnad.</li><li>Att bygga och placera saker kräver mer genomtänkta kontroller.</li></ul></div>
+      <div><h3>Tyngd</h3>
+        <div class="mrow"><span>Mobil</span><span class="meter"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span></div>
+        <div class="mrow"><span>Arbete</span><span class="meter"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="option" id="b">
+    <h2><span class="tag">SPÅR B</span>Isometrisk, klassisk tycoon-vinkel</h2>
+    <div class="stage" id="stageB"><canvas id="cB" aria-label="Isometrisk vy av flygplatsen"></canvas><span class="note">Fast vinkel, vrid i 90° · scrolla för att zooma</span><div class="ctl"><button type="button" id="rotB">Vrid 90°</button></div></div>
+    <div class="facts">
+      <div><h3>Fördelar</h3><ul class="pro"><li>Tydligt och lättläst, som SimCity och Theme Hospital.</li><li>Lättast att bygga på, eftersom rutnätet alltid syns rakt.</li><li>Fungerar bra med fingrar på mobil.</li></ul></div>
+      <div><h3>Nackdelar</h3><ul class="con"><li>Mindre "wow" än fri 3D.</li><li>Man ser inte in i terminalen utan att skära bort taket.</li></ul></div>
+      <div><h3>Tyngd</h3>
+        <div class="mrow"><span>Mobil</span><span class="meter"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span></div>
+        <div class="mrow"><span>Arbete</span><span class="meter"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="option" id="c">
+    <h2><span class="tag">SPÅR C</span>Ritning uppifrån, terminalen inifrån</h2>
+    <div class="stage" id="stageC" style="background:#5f7f52"><canvas id="cC" aria-label="Vy uppifrån med terminalens insida"></canvas><span class="note">Taket borttaget: man ser incheckning, säkerhet, butiker och gates</span></div>
+    <div class="facts">
+      <div><h3>Fördelar</h3><ul class="pro"><li>Man ser varje kö, disk och passagerare. Passar spelets djup.</li><li>Lättast att planera terminalens insida.</li><li>Lättast för mobil.</li></ul></div>
+      <div><h3>Nackdelar</h3><ul class="con"><li>Ser mer ut som en ritning än som en vacker flygplats.</li><li>Tornet och terminalens arkitektur syns knappt.</li></ul></div>
+      <div><h3>Tyngd</h3>
+        <div class="mrow"><span>Mobil</span><span class="meter"><i class="on"></i><i></i><i></i><i></i><i></i></span></div>
+        <div class="mrow"><span>Arbete</span><span class="meter"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="verdict">
+    <h2>Min rekommendation: A och C tillsammans</h2>
+    <ol>
+      <li><b>Utsidan i 3D (spår A).</b> Det är där flygplatsen ska vara snygg och igenkännbar: terminalerna, tornet, planen som landar.</li>
+      <li><b>Terminalens insida som ritning (spår C).</b> Man klickar på en terminal och "lyfter av taket" för att planera incheckning, säkerhet, butiker och gates.</li>
+      <li><b>Simuleringen behålls.</b> Bara grafikfilen byts. Allt som räknar flyg, köer och pengar ligger kvar.</li>
+    </ol>
+    <p class="muted">Det blir inte för tungt. En scen av den här storleken går bra på en vanlig mobil från de senaste fem åren, och det är samma teknik som många mobilspel använder.</p>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+  const T = window.THREE;
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---------- gemensam scen ----------
+  function textTex(text, w, h, bg, fg, font) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const x = c.getContext('2d');
+    if (bg) { x.fillStyle = bg; x.fillRect(0, 0, w, h); }
+    x.fillStyle = fg; x.font = font; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText(text, w / 2, h / 2 + 2);
+    const t = new T.CanvasTexture(c); t.anisotropy = 4; t.encoding = T.sRGBEncoding; return t;
+  }
+
+  function buildScene(style) {
+    const iso = style === 'iso';
+    const scene = new T.Scene();
+    const M = (color, o) => new (iso ? T.MeshLambertMaterial : T.MeshStandardMaterial)(Object.assign({ color }, iso ? {} : { roughness: 0.85, metalness: 0.0 }, o || {}));
+    const glass = iso ? new T.MeshLambertMaterial({ color: 0x5f9fc4 }) : new T.MeshStandardMaterial({ color: 0x6fa9cc, roughness: 0.15, metalness: 0.55 });
+    const towerGlass = iso ? new T.MeshLambertMaterial({ color: 0x3f7f78 }) : new T.MeshStandardMaterial({ color: 0x3c7a72, roughness: 0.1, metalness: 0.6 });
+    const edgeMat = new T.LineBasicMaterial({ color: 0x23303f, transparent: true, opacity: 0.35 });
+    const box = (w, h, d, x, y, z, mat, opt) => {
+      const m = new T.Mesh(new T.BoxGeometry(w, h, d), mat);
+      m.position.set(x, y, z); m.castShadow = !(opt && opt.noCast); m.receiveShadow = true;
+      if (iso && opt && opt.outline) m.add(new T.LineSegments(new T.EdgesGeometry(m.geometry), edgeMat));
+      scene.add(m); return m;
+    };
+    const flat = (w, d, x, z, mat, y) => { const m = new T.Mesh(new T.PlaneGeometry(w, d), mat); m.rotation.x = -Math.PI / 2; m.position.set(x, y || 0.01, z); m.receiveShadow = true; scene.add(m); return m; };
+
+    scene.background = new T.Color(iso ? 0xbfd6e6 : 0xa9cbe3);
+    if (!iso) scene.fog = new T.Fog(0xa9cbe3, 140, 320);
+    scene.add(new T.HemisphereLight(0xdfeeff, 0x4d5f3f, iso ? 0.75 : 0.6));
+    const sun = new T.DirectionalLight(0xfff3dc, iso ? 0.75 : 1.05);
+    sun.position.set(-50, 80, -40); sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    Object.assign(sun.shadow.camera, { left: -95, right: 95, top: 75, bottom: -75, near: 1, far: 260 });
+    sun.shadow.bias = -0.0005; sun.shadow.camera.updateProjectionMatrix();
+    scene.add(sun);
+
+    // Mark
+    flat(400, 300, 0, 0, M(0x6c8e57), 0);
+    const asphalt = M(0x3a3f46), concrete = M(0xa9adb2), apronMat = M(0xbcc0c4), white = M(0xf2f4f6), yellow = M(0xe8c23a);
+    flat(150, 3.8, 0, -34, asphalt, 0.02);
+    for (let x = -66; x <= 66; x += 7) flat(3.2, 0.22, x, -34, white, 0.04);
+    for (const sx of [-1, 1]) for (let i = 0; i < 6; i++) flat(2.2, 0.28, sx * 71, -35.4 + i * 0.55, white, 0.04);
+    for (const [txt, x, rot] of [['09', -64.5, -Math.PI / 2], ['27', 64.5, Math.PI / 2]]) {
+      const m = flat(3.2, 2.4, x, -34, new T.MeshBasicMaterial({ map: textTex(txt, 128, 96, null, '#f2f4f6', '700 80px "B612 Mono", monospace'), transparent: true }), 0.05);
+      m.rotation.z = rot;
+    }
+    flat(130, 2.4, 0, -21.5, asphalt, 0.02);
+    flat(130, 0.12, 0, -21.5, yellow, 0.04);
+    for (const x of [-62, 62]) { flat(2.4, 12, x, -27.6, asphalt, 0.021); flat(0.12, 12, x, -27.6, yellow, 0.041); }
+    flat(84, 19.6, 0, -10.2, apronMat, 0.015);
+    // Uppställningsplatser
+    const gates = [-27, -9, 9, 27];
+    gates.forEach((gx) => { flat(0.14, 15, gx, -12.5, yellow, 0.035); flat(4, 0.14, gx, -4.2, yellow, 0.035); });
+
+    // Terminal
+    box(76, 4.4, 12, 0, 2.2, 6.2, M(0xd9dde2), { outline: true });
+    const facade = box(74, 3.8, 0.3, 0, 2.25, 0.1, glass, { noCast: true });
+    for (let x = -37; x <= 37; x += 2.2) box(0.12, 3.8, 0.42, x, 2.25, 0.08, M(0x2b333d), { noCast: true });
+    box(74, 0.14, 0.44, 0, 1.4, 0.06, M(0x2b333d), { noCast: true });
+    // Böljande tak
+    const roofG = new T.CylinderGeometry(24, 24, 78, 48, 1, true, Math.PI / 2 - 0.3, 0.6);
+    const roof = new T.Mesh(roofG, M(0xf3f4f5, Object.assign({ side: T.DoubleSide }, iso ? {} : { roughness: 0.5 })));
+    roof.rotation.set(0, 0, Math.PI / 2); roof.position.set(0, 5.7 - 24, 6.2);
+    roof.castShadow = true; roof.receiveShadow = true; scene.add(roof);
+    // Takljusband
+    for (let x = -30; x <= 30; x += 12) box(6, 0.12, 9, x, 5.0, 6.2, glass, { noCast: true });
+    // Skylt på landsidan
+    const sign = new T.Mesh(new T.PlaneGeometry(26, 2), new T.MeshBasicMaterial({ map: textTex('SKYHUB · TERMINAL 1', 1024, 80, '#1b2633', '#ffb627', '700 50px "B612 Mono", monospace') }));
+    sign.position.set(0, 3.4, 12.25); scene.add(sign);
+    // Entrétak på landsidan
+    box(44, 0.3, 3, 0, 3.0, 13.8, M(0xe8eaec), { outline: true });
+    for (let x = -21; x <= 21; x += 6) box(0.25, 3, 0.25, x, 1.5, 15, M(0x8b939c));
+
+    // Flygbryggor
+    const bridgeMat = M(0xc7ccd2);
+    gates.forEach((gx) => {
+      const rx = gx + 3.4, rz = -1.6;
+      const rot = new T.Mesh(new T.CylinderGeometry(0.8, 0.8, 1.6, 16), bridgeMat); rot.position.set(rx, 1.6, rz); rot.castShadow = true; scene.add(rot);
+      box(1.1, 1.1, 1.6, rx, 1.6, -0.6, bridgeMat);
+      const tx = gx + 1.0, tz = -4.7, dx = tx - rx, dz = tz - rz, L = Math.hypot(dx, dz);
+      const tube = box(1.1, 1.1, L, rx + dx / 2, 1.6, rz + dz / 2, bridgeMat, { outline: true });
+      tube.rotation.y = Math.atan2(dx, dz);
+      box(0.25, 1.1, 0.25, rx + dx * 0.75, 0.55, rz + dz * 0.75, M(0x59616b));
+    });
+
+    // Flygplan
+    function plane(color, s) {
+      const g = new T.Group();
+      const wht = M(0xf5f7f9), tailM = M(color), grey = M(0x9aa3ad), dark = M(0x2a3038);
+      const DS = { side: T.DoubleSide };
+      const body = new T.Mesh(new T.CylinderGeometry(0.58, 0.58, 7, 16), wht); body.rotation.x = Math.PI / 2; g.add(body);
+      const nose = new T.Mesh(new T.SphereGeometry(0.58, 16, 12), wht); nose.scale.set(1, 0.95, 1.7); nose.position.z = 3.5; g.add(nose);
+      const cock = new T.Mesh(new T.BoxGeometry(0.7, 0.16, 0.5), dark); cock.position.set(0, 0.32, 4.3); cock.rotation.x = 0.4; g.add(cock);
+      const tc = new T.Mesh(new T.ConeGeometry(0.58, 2.4, 16), wht); tc.rotation.x = -Math.PI / 2; tc.position.set(0, 0.12, -4.7); tc.scale.set(1, 1, 0.75); g.add(tc);
+      const ws = new T.Shape(); ws.moveTo(0, 1.1); ws.lineTo(4.8, -1.3); ws.lineTo(4.8, -1.95); ws.lineTo(0, -1.0); ws.closePath();
+      const wg = new T.ExtrudeGeometry(ws, { depth: 0.12, bevelEnabled: false });
+      for (const sx of [1, -1]) {
+        const w = new T.Mesh(wg, new (iso ? T.MeshLambertMaterial : T.MeshStandardMaterial)({ color: 0xe9ecef, side: T.DoubleSide }));
+        w.rotation.x = Math.PI / 2; w.scale.x = sx; w.position.set(0, -0.22, 0.4); g.add(w);
+        const hs = new T.Mesh(wg, w.material); hs.rotation.x = Math.PI / 2; hs.scale.set(sx * 0.42, 0.42, 1); hs.position.set(0, 0.25, -4.6); g.add(hs);
+        const eng = new T.Mesh(new T.CylinderGeometry(0.34, 0.3, 1.4, 14), grey); eng.rotation.x = Math.PI / 2; eng.position.set(sx * 1.75, -0.62, 1.2); g.add(eng);
+        const stripe = new T.Mesh(new T.BoxGeometry(0.02, 0.14, 7.4), tailM); stripe.position.set(sx * 0.585, 0.02, 0.2); g.add(stripe);
+        const win = new T.Mesh(new T.BoxGeometry(0.02, 0.09, 6.2), dark); win.position.set(sx * 0.585, 0.24, 0.4); g.add(win);
+      }
+      const fs = new T.Shape(); fs.moveTo(-2.9, 0.3); fs.lineTo(-4.9, 0.3); fs.lineTo(-5.4, 2.7); fs.lineTo(-4.4, 2.7); fs.closePath();
+      const fin = new T.Mesh(new T.ExtrudeGeometry(fs, { depth: 0.14, bevelEnabled: false }), tailM);
+      fin.rotation.y = -Math.PI / 2; fin.position.x = 0.07; g.add(fin);
+      for (const z of [2.6, -0.2]) { const wh = new T.Mesh(new T.CylinderGeometry(0.06, 0.06, 1.0, 6), dark); wh.position.set(0, -0.95, z); g.add(wh); }
+      g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+      g.scale.setScalar(s);
+      return g;
+    }
+    const liveries = [0x2f6fdb, 0x2fa36b, 0xd2433f, 0x8b5cf6];
+    const parked = [];
+    gates.forEach((gx, i) => {
+      const p = plane(liveries[i], i === 3 ? 1.25 : 1);
+      p.position.set(gx, 1.55 * (i === 3 ? 1.25 : 1), -8.6 - (i === 3 ? 1.6 : 0)); scene.add(p); parked.push(p);
+      // Marktjänst: bagagevagnar och tankbil
+      box(1.6, 0.6, 0.9, gx - 3.2, 0.3, -9.5, M(0x3d4752));
+      box(1.0, 0.5, 0.8, gx - 3.2, 0.25, -11.0, M(0x9aa3ad));
+      if (i % 2 === 0) { box(1.2, 1.1, 3.2, gx + 3.6, 0.55, -11.5, M(0xe9ecef)); box(1.2, 0.8, 1.1, gx + 3.6, 0.4, -9.4, M(0xd2433f)); }
+    });
+
+    // Flygledartorn
+    const tg = new T.Group(); tg.position.set(48, 0, 3);
+    const tw = (geo, mat, y) => { const m = new T.Mesh(geo, mat); m.position.y = y; m.castShadow = true; m.receiveShadow = true; tg.add(m); return m; };
+    tw(new T.BoxGeometry(6, 2.4, 6), M(0xcfd4da), 1.2);
+    tw(new T.CylinderGeometry(1.0, 1.3, 15, 20), M(0xe4e7ea), 9.9);
+    tw(new T.CylinderGeometry(2.6, 1.6, 1.4, 8), M(0xd0d5db), 17.9);
+    tw(new T.CylinderGeometry(2.7, 2.4, 2.2, 8), towerGlass, 19.7);
+    tw(new T.CylinderGeometry(3.0, 3.0, 0.3, 8), M(0x2b333d), 20.95);
+    tw(new T.CylinderGeometry(0.6, 2.4, 0.9, 8), M(0xe4e7ea), 21.5);
+    tw(new T.CylinderGeometry(0.05, 0.05, 3, 6), M(0x2b333d), 23.4);
+    tw(new T.SphereGeometry(0.35, 12, 8), M(0xf2f4f6), 22.4);
+    scene.add(tg);
+
+    // Hangar
+    const hg = new T.Group(); hg.position.set(-58, 0, -6);
+    const hb = new T.Mesh(new T.BoxGeometry(18, 3, 14), M(0xb9c0c8)); hb.position.y = 1.5; hb.castShadow = hb.receiveShadow = true; hg.add(hb);
+    const hr = new T.Mesh(new T.CylinderGeometry(7.2, 7.2, 18, 32, 1, false, 0, Math.PI), M(0x9ea7b1));
+    hr.scale.set(0.6, 1, 1); hr.rotation.set(0, 0, Math.PI / 2); hr.position.y = 3; hr.castShadow = true; hg.add(hr);
+    const hd = new T.Mesh(new T.PlaneGeometry(15, 5.5), M(0x5d6670)); hd.position.set(0, 2.75, -7.02); hd.rotation.y = Math.PI; hg.add(hd);
+    if (iso) hg.add(new T.LineSegments(new T.EdgesGeometry(hb.geometry), edgeMat));
+    scene.add(hg);
+    flat(20, 8, -58, -16, apronMat, 0.016);
+
+    // Landsida: väg och parkering
+    flat(220, 4.6, 0, 19, asphalt, 0.02);
+    for (let x = -100; x <= 100; x += 6) flat(2.4, 0.15, x, 19, white, 0.035);
+    flat(66, 14, 0, 30, M(0x4a4f57), 0.02);
+    const carCols = [0xd9dde2, 0x2b333d, 0x9e2b2b, 0x2f5aa8, 0x8a939d, 0xe0e3e6, 0x3c6e4f];
+    let k = 0;
+    for (let row = 0; row < 3; row++) for (let x = -31; x <= 31; x += 2.2) {
+      const z = 24.8 + row * 4.6;
+      flat(0.08, 2.2, x - 1.1, z, white, 0.03);
+      if ((x * 7 + row * 13 + k++) % 5 === 0) continue;
+      box(1.0, 0.6, 1.9, x, 0.3, z, M(carCols[(k * 3) % carCols.length]));
+    }
+    // Bussar och taxi vid entrén
+    box(1.4, 1.5, 6, -14, 0.75, 17.6, M(0x2fa36b)); box(1.0, 0.6, 2, 10, 0.3, 17.6, M(0xe8c23a)); box(1.0, 0.6, 2, 13, 0.3, 17.6, M(0xe8c23a));
+
+    // Träd
+    const trunk = M(0x6b4f35), leaf = M(0x3f6b3a), leaf2 = M(0x4c7a3f);
+    for (let i = 0; i < 90; i++) {
+      const a = i * 2.39996, r = 85 + (i % 7) * 7;
+      let x = Math.cos(a) * r, z = Math.sin(a) * r * 0.62;
+      if (Math.abs(z + 34) < 8 || Math.abs(z - 19) < 5) continue;
+      const tt = new T.Mesh(new T.CylinderGeometry(0.15, 0.2, 1.2, 6), trunk); tt.position.set(x, 0.6, z);
+      const cr = new T.Mesh(new T.ConeGeometry(1.1 + (i % 3) * 0.3, 3 + (i % 4) * 0.5, 7), i % 2 ? leaf : leaf2); cr.position.set(x, 2.6, z);
+      cr.castShadow = tt.castShadow = true; scene.add(tt); scene.add(cr);
+    }
+
+    // Rörliga plan
+    const taxi = plane(0xf29a2e, 1); scene.add(taxi);
+    const lander = plane(0x27a3c9, 1); scene.add(lander);
+    function update(t) {
+      // Taxar längs taxibanan, västerut, och svänger ut mot banan
+      const u = (t * 0.035) % 1;
+      if (u < 0.8) { const x = 55 - u / 0.8 * 117; taxi.position.set(x, 1.55, -21.5); taxi.rotation.set(0, -Math.PI / 2, 0); }
+      else { const v = (u - 0.8) / 0.2; taxi.position.set(-62, 1.55, -21.5 - v * 12); taxi.rotation.set(0, Math.PI, 0); }
+      // Landar på bana 09 från väster
+      const w = (t * 0.045 + 0.4) % 1;
+      let x, y;
+      if (w < 0.45) { const q = w / 0.45; x = -170 + q * 108; y = 1.55 + (1 - q) * 22; lander.rotation.set(0.08 * (1 - q), Math.PI / 2, 0); }
+      else if (w < 0.85) { const q = (w - 0.45) / 0.4; x = -62 + (1 - Math.pow(1 - q, 2)) * 100; y = 1.55; lander.rotation.set(0, Math.PI / 2, 0); }
+      else { x = 38; y = 1.55; }
+      lander.visible = w < 0.85;
+      lander.position.set(x, y, -34);
+    }
+    return { scene, update };
+  }
+
+  function makeRenderer(canvas) {
+    const r = new T.WebGLRenderer({ canvas, antialias: true });
+    r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    r.shadowMap.enabled = true; r.shadowMap.type = T.PCFSoftShadowMap;
+    r.outputEncoding = T.sRGBEncoding;
+    return r;
+  }
+  const views = [];
+  function fit(v) {
+    const w = v.canvas.clientWidth, h = v.canvas.clientHeight;
+    if (!w || !h) return;
+    if (v.w === w && v.h === h) return;
+    v.w = w; v.h = h; v.renderer && v.renderer.setSize(w, h, false); v.onResize && v.onResize(w, h);
+  }
+
+  // ---------- Spår A: fri 3D-kamera ----------
+  (function () {
+    const canvas = document.getElementById('cA');
+    const renderer = makeRenderer(canvas), S = buildScene('3d');
+    const cam = new T.PerspectiveCamera(38, 16 / 9, 0.5, 600);
+    const orb = { yaw: -2.55, pitch: 0.42, dist: 105, tx: 0, ty: 0, tz: -6 };
+    const place = () => {
+      cam.position.set(orb.tx + Math.sin(orb.yaw) * Math.cos(orb.pitch) * orb.dist, orb.ty + Math.sin(orb.pitch) * orb.dist, orb.tz + Math.cos(orb.yaw) * Math.cos(orb.pitch) * orb.dist);
+      cam.lookAt(orb.tx, orb.ty, orb.tz);
+    };
+    place();
+    const pts = new Map(); let pinch = 0;
+    canvas.addEventListener('pointerdown', (e) => { canvas.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); });
+    canvas.addEventListener('pointermove', (e) => {
+      if (!pts.has(e.pointerId)) return;
+      const [px, py] = pts.get(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]);
+      if (pts.size === 2) { const [a, b] = [...pts.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch) orb.dist = Math.max(25, Math.min(220, orb.dist * pinch / d)); pinch = d; }
+      else { orb.yaw -= (e.clientX - px) * 0.006; orb.pitch = Math.max(0.12, Math.min(1.35, orb.pitch + (e.clientY - py) * 0.004)); }
+      place();
+    });
+    const up = (e) => { pts.delete(e.pointerId); pinch = 0; };
+    canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
+    canvas.addEventListener('wheel', (e) => { e.preventDefault(); orb.dist = Math.max(25, Math.min(220, orb.dist * Math.exp(e.deltaY * 0.001))); place(); }, { passive: false });
+    views.push({ canvas, renderer, onResize: (w, h) => { cam.aspect = w / h; cam.updateProjectionMatrix(); }, frame: (t) => { S.update(t); renderer.render(S.scene, cam); } });
+  })();
+
+  // ---------- Spår B: isometrisk ----------
+  (function () {
+    const canvas = document.getElementById('cB');
+    const renderer = makeRenderer(canvas), S = buildScene('iso');
+    const cam = new T.OrthographicCamera(-1, 1, 1, -1, 1, 1000);
+    let zoom = 1, rot = 0, rotCur = 0, aspect = 16 / 9;
+    const proj = () => { const hh = 48 / zoom; cam.left = -hh * aspect; cam.right = hh * aspect; cam.top = hh; cam.bottom = -hh; cam.updateProjectionMatrix(); };
+    const place = () => { const a = Math.PI * 1.25 + rotCur, d = 200; cam.position.set(Math.cos(a) * d, d * 0.82, Math.sin(a) * d - 6); cam.lookAt(0, 0, -6); };
+    proj(); place();
+    document.getElementById('rotB').addEventListener('click', () => { rot += Math.PI / 2; if (reduce) { rotCur = rot; place(); } });
+    canvas.addEventListener('wheel', (e) => { e.preventDefault(); zoom = Math.max(0.6, Math.min(3, zoom * Math.exp(-e.deltaY * 0.001))); proj(); }, { passive: false });
+    views.push({ canvas, renderer, onResize: (w, h) => { aspect = w / h; proj(); }, frame: (t) => { if (Math.abs(rot - rotCur) > 0.001) { rotCur += (rot - rotCur) * 0.12; place(); } S.update(t); renderer.render(S.scene, cam); } });
+  })();
+
+  // ---------- Spår C: ritning uppifrån ----------
+  (function () {
+    const canvas = document.getElementById('cC'), ctx = canvas.getContext('2d');
+    const X0 = -78, X1 = 78, Z0 = -42, Z1 = 38;
+    let k = 1, ox = 0, oy = 0, dpr = 1;
+    const P = (x, z) => [ox + (x - X0) * k, oy + (z - Z0) * k];
+    const rect = (x, z, w, d, fill, stroke, lw) => { const [a, b] = P(x - w / 2, z - d / 2); ctx.beginPath(); ctx.rect(a, b, w * k, d * k); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = (lw || 0.15) * k; ctx.stroke(); } };
+    const label = (txt, x, z, col, size) => { const [a, b] = P(x, z); ctx.fillStyle = col; ctx.font = `700 ${Math.max(9, size * k)}px "B612", sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(txt, a, b); };
+    function planeTop(x, z, ang, s, color) {
+      const [a, b] = P(x, z);
+      ctx.save(); ctx.translate(a, b); ctx.rotate(ang); ctx.scale(k * s, k * s);
+      ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.save(); ctx.translate(0.5, 0.5); shape(); ctx.fill(); ctx.restore();
+      ctx.fillStyle = '#f5f7f9'; shape(); ctx.fill(); ctx.strokeStyle = '#8a939d'; ctx.lineWidth = 0.08; ctx.stroke();
+      ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(-4.6, 0); ctx.lineTo(-5.6, 2.1); ctx.lineTo(-6.1, 2.1); ctx.lineTo(-5.6, 0); ctx.lineTo(-6.1, -2.1); ctx.lineTo(-5.6, -2.1); ctx.closePath(); ctx.fill();
+      ctx.fillRect(-5.4, -0.18, 1.6, 0.36);
+      ctx.fillStyle = '#2a3038'; ctx.fillRect(4.1, -0.35, 0.45, 0.7);
+      ctx.restore();
+      function shape() {
+        ctx.beginPath(); ctx.ellipse(0, 0, 5.4, 0.62, 0, 0, Math.PI * 2);
+        ctx.moveTo(1.4, 0.4); ctx.lineTo(-1.0, 5.2); ctx.lineTo(-1.7, 5.2); ctx.lineTo(-0.9, 0.4); ctx.closePath();
+        ctx.moveTo(1.4, -0.4); ctx.lineTo(-1.0, -5.2); ctx.lineTo(-1.7, -5.2); ctx.lineTo(-0.9, -0.4); ctx.closePath();
+        ctx.moveTo(-4.4, 0.3); ctx.lineTo(-5.5, 2.1); ctx.lineTo(-6.0, 2.1); ctx.lineTo(-5.5, 0.3); ctx.closePath();
+        ctx.moveTo(-4.4, -0.3); ctx.lineTo(-5.5, -2.1); ctx.lineTo(-6.0, -2.1); ctx.lineTo(-5.5, -0.3); ctx.closePath();
+      }
+    }
+    // Passagerare som går genom terminalen
+    const flows = [];
+    const checkins = [-28, -18, 18, 28], lanes = [-6, -3, 0, 3, 6], gatesX = [-27, -9, 9, 27];
+    for (let i = 0; i < 140; i++) {
+      const ci = checkins[i % 4], la = lanes[i % 5], gx = gatesX[(i * 7) % 4];
+      flows.push({ path: [[ci + ((i % 5) - 2) * 0.9, 13.5], [ci + ((i % 3) - 1) * 1.6, 9.6], [la, 7.6], [la, 5.0], [gx + ((i % 6) - 2.5) * 1.1, 2.4]], off: (i * 0.0713) % 1, speed: 0.025 + (i % 5) * 0.004, col: ['#2f3a4a', '#c4475b', '#2f6fdb', '#d9a03a', '#4a7d5c', '#7a4b8f'][i % 6] });
+    }
+    function draw(t) {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.fillStyle = '#6a8b58'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Bana och taxi
+      rect(0, -34, 150, 3.8, '#3a3f46');
+      ctx.setLineDash([3.2 * k, 3.8 * k]); ctx.strokeStyle = '#f2f4f6'; ctx.lineWidth = 0.22 * k; let [a, b] = P(-66, -34), [c, d] = P(66, -34); ctx.beginPath(); ctx.moveTo(a, b); ctx.lineTo(c, d); ctx.stroke(); ctx.setLineDash([]);
+      for (const sx of [-1, 1]) for (let i = 0; i < 6; i++) rect(sx * 71, -35.4 + i * 0.55, 2.2, 0.28, '#f2f4f6');
+      label('09', -66.5, -34, '#f2f4f6', 1.6); label('27', 66.5, -34, '#f2f4f6', 1.6);
+      rect(0, -21.5, 130, 2.4, '#3a3f46'); rect(0, -21.5, 130, 0.12, '#e8c23a');
+      for (const x of [-62, 62]) { rect(x, -27.6, 2.4, 12, '#3a3f46'); rect(x, -27.6, 0.12, 12, '#e8c23a'); }
+      rect(0, -10.2, 84, 19.6, '#bcc0c4');
+      gatesX.forEach((gx, i) => { rect(gx, -12.5, 0.14, 15, '#e8c23a'); rect(gx, -4.2, 4, 0.14, '#e8c23a'); label('A' + (i + 1), gx - 3.5, -17.5, '#2b333d', 1.2); });
+      // Hangar och torn
+      rect(-58, -6, 18, 14, '#9ea7b1', '#5d6670', 0.3); for (let x = -66; x <= -50; x += 2) rect(x, -6, 0.15, 14, 'rgba(0,0,0,0.12)');
+      label('HANGAR', -58, -6, '#2b333d', 1.3);
+      rect(48, 3, 6, 6, '#cfd4da', '#7d8590', 0.2);
+      let [tx, tz] = P(48, 3); ctx.fillStyle = '#3c7a72'; ctx.beginPath(); for (let i = 0; i < 8; i++) { const ang = i / 8 * Math.PI * 2 + Math.PI / 8; ctx.lineTo(tx + Math.cos(ang) * 2.7 * k, tz + Math.sin(ang) * 2.7 * k); } ctx.closePath(); ctx.fill();
+      label('TORN', 48, 7.6, '#1b2633', 1.1);
+      // Väg och parkering
+      rect(0, 19, 220, 4.6, '#3a3f46'); rect(0, 30, 66, 14, '#4a4f57');
+      let kk = 0;
+      for (let row = 0; row < 3; row++) for (let x = -31; x <= 31; x += 2.2) { const z = 24.8 + row * 4.6; rect(x - 1.1, z, 0.08, 2.2, '#d9dde2'); if ((x * 7 + row * 13 + kk++) % 5 === 0) continue; rect(x, z, 1.0, 1.9, ['#d9dde2', '#2b333d', '#9e2b2b', '#2f5aa8', '#8a939d', '#e0e3e6', '#3c6e4f'][(kk * 3) % 7]); }
+      // Terminal, insida
+      rect(0, 6.2, 76, 12, '#e9e6df', '#2b333d', 0.45);
+      rect(0, 0.4, 74, 0.5, '#7fb2d0');
+      for (const x of [-20, -10, 10, 20]) rect(x, 12.2, 3, 0.6, '#e9e6df');
+      // Incheckning
+      checkins.forEach((cx) => { rect(cx, 10.6, 7, 1.0, '#4f8fd6', '#2f6aac', 0.12); for (let i = -3; i <= 3; i++) rect(cx + i, 11.3, 0.6, 0.4, '#2b333d'); rect(cx, 9.6, 7, 0.08, '#b9bfc7'); });
+      label('INCHECKNING', -23, 8.5, '#2f6aac', 0.95); label('INCHECKNING', 23, 8.5, '#2f6aac', 0.95);
+      // Säkerhet
+      rect(0, 6.3, 18, 0.2, '#2b333d');
+      lanes.forEach((x) => { rect(x, 6.3, 1.0, 2.2, '#e0a33a', '#a8741c', 0.1); rect(x + 1.2, 6.3, 0.25, 1.3, '#7d8590'); });
+      label('SÄKERHET', 0, 8.8, '#a8741c', 0.95);
+      // Flygsida: butiker, mat, lounge, WC, sittplatser
+      rect(-17, 4.6, 9, 3.2, '#d6608d'); label('TAX FREE', -17, 4.6, '#ffffff', 0.9);
+      rect(17, 4.6, 9, 3.2, '#e2793f'); label('RESTAURANG', 17, 4.6, '#ffffff', 0.9);
+      rect(-33, 4.6, 5, 3.2, '#2b2f3a'); label('VIP', -33, 4.6, '#e9c33b', 0.9);
+      rect(33, 4.6, 5, 3.2, '#6cc3c9'); label('WC', 33, 4.6, '#ffffff', 0.9);
+      gatesX.forEach((gx) => { for (let r = 0; r < 2; r++) for (let i = -3; i <= 3; i++) rect(gx + i * 0.9, 1.6 + r * 0.9, 0.7, 0.5, '#5d6a7f'); });
+      // Bryggor och plan
+      gatesX.forEach((gx, i) => {
+        const [x1, z1] = P(gx + 3.4, -1.0), [x2, z2] = P(gx + 1.0, -4.7);
+        ctx.strokeStyle = '#c7ccd2'; ctx.lineWidth = 1.1 * k; ctx.beginPath(); ctx.moveTo(x1, z1); ctx.lineTo(x2, z2); ctx.stroke();
+        planeTop(gx, -8.6 - (i === 3 ? 1.6 : 0), Math.PI / 2, i === 3 ? 1.25 : 1, ['#2f6fdb', '#2fa36b', '#d2433f', '#8b5cf6'][i]);
+      });
+      // Rörliga plan
+      const u = (t * 0.035) % 1;
+      if (u < 0.8) planeTop(55 - u / 0.8 * 117, -21.5, Math.PI, 1, '#f29a2e'); else planeTop(-62, -21.5 - (u - 0.8) / 0.2 * 12, -Math.PI / 2, 1, '#f29a2e');
+      const w = (t * 0.045 + 0.4) % 1;
+      if (w >= 0.45 && w < 0.85) { const q = (w - 0.45) / 0.4; planeTop(-62 + (1 - Math.pow(1 - q, 2)) * 100, -34, 0, 1, '#27a3c9'); }
+      // Passagerare
+      flows.forEach((f) => {
+        const p = (f.off + t * f.speed) % 1, segs = f.path.length - 1, s = p * segs, i = Math.floor(s), q = s - i;
+        const A = f.path[i], B = f.path[i + 1];
+        const [px, pz] = P(A[0] + (B[0] - A[0]) * q, A[1] + (B[1] - A[1]) * q);
+        ctx.fillStyle = f.col; ctx.beginPath(); ctx.arc(px, pz, Math.max(1.6, 0.32 * k), 0, 7); ctx.fill();
+      });
+      label('TERMINAL 1', 0, 13.2, '#ffffff', 1.0);
+    }
+    views.push({ canvas, onResize: (wd, ht) => {
+      dpr = Math.min(window.devicePixelRatio || 1, 2); canvas.width = wd * dpr; canvas.height = ht * dpr;
+      k = Math.min(wd / (X1 - X0), ht / (Z1 - Z0)); ox = (wd - (X1 - X0) * k) / 2; oy = (ht - (Z1 - Z0) * k) / 2;
+    }, frame: draw });
+  })();
+
+  // ---------- loop: rita bara det som syns ----------
+  const visible = new Set();
+  const io = new IntersectionObserver((es) => es.forEach((e) => { const v = views.find((x) => x.canvas === e.target); if (e.isIntersecting) visible.add(v); else visible.delete(v); }));
+  views.forEach((v) => { io.observe(v.canvas); fit(v); v.frame(8); });
+  const t0 = performance.now();
+  function loop(now) {
+    const t = reduce ? 8 : (now - t0) / 1000 + 8;
+    views.forEach((v) => { fit(v); if (visible.has(v) && !document.hidden) v.frame(t); });
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>

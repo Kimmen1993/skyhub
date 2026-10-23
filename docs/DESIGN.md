@@ -1,0 +1,89 @@
+# SkyHub – designdokument
+
+Spelets minne. Allt vi bestämmer står här, med datum och skäl. Läs detta först i varje arbetspass.
+Ändra bara efter ett beslut tillsammans med Kimm; markera öppna frågor tydligt.
+
+Arbetsnamn: **SkyHub** (kan bytas).
+
+---
+
+## 1. Vision
+
+Ett tecknat managementspel där du tar över en liten fiktiv regional flygplats och steg för steg
+växer in i hela verksamheten, tills du driver en av världens största flygplatser.
+Senare: samma motor för en **hamn**, och i lång sikt ett **resecentrum** (tåg, buss, taxi).
+
+Kärnkänsla: du är chef, men du kan när som helst gå ner på golvet och hjälpa till.
+Spelet ska kräva strategi hela vägen och inte lösas på en timme och sedan bara rulla med oändligt med pengar.
+
+## 2. Beslut (logg)
+
+| Datum | Beslut | Skäl |
+|---|---|---|
+| 2026-10-23 | Testas som webbsida via en länk (Claude-artefakt). Mobilappar (iOS/Android) senare. | Enkelt att testa på Mac och Windows. |
+| 2026-10-23 | Simuleringen är skild från grafiken (`js/sim.js` har ingen grafik). | Grafiken kan bytas utan att spelet byggs om. Samma kärna för hamn och resecentrum. |
+| 2026-10-23 | Grafik: **tecknad, stiliserad 3D** (toon/low-poly). Inte realistisk 3D, inte platta rutor. Referenser: Two Point Hospital, Overcooked, My Perfect Hotel. | Kimm: v0.1-rutorna var oläsliga och 3D-skisserna för realistiska och stela. |
+| 2026-10-23 | Två kameralägen: **översikt** (chefsläget, hela området) och **golvläget** (styr chefsfiguren, kamera snett ovanifrån nära golvet, inte förstapersonsvy). | Kimm vill kunna hoppa in och hjälpa till när något strular. |
+| 2026-10-23 | Flygplatsen är **fiktiv**. Spelaren kan döpa den själv (t.ex. efter sin hemstad). | Frihet för spelaren, inga varumärkesproblem. |
+| 2026-10-23 | Spelet byggs i **samma ordning som det spelas**. Varje avdelning görs riktigt bra innan nästa påbörjas. | Undvika fem ytliga spel i stället för ett djupt. |
+| 2026-10-23 | Avdelningar som inte är upplåsta sköts av en **entreprenör som gör det halvbra**. Spelaren ser bristerna och vill ta över. | Ger naturlig motivation att låsa upp, i stället för en dyr knapp. |
+| 2026-10-23 | Pengar är inte enda spärren. Tillstånd, krav, rykte, personal och uppdrag spärrar också. | Undvika att spelet blir "oändligt med pengar". |
+
+## 3. Avdelningar (upplåsningsordning)
+
+1. **Airside / plattan** – gates, turnaround, marktjänst, bagagelastning, avisning, uppställning. *Startavdelning.*
+2. **Flygledning (ATC)** – tornet, banor, sekvensering av landningar, radar, väder. Kan bli ett eget litet radarspel.
+3. **Terminalen** – incheckning, säkerhet, butiker, service, VIP.
+4. **Landside** – parkering, tåg, buss, taxi. Fröet till framtida resecentrum.
+5. **Eget flygbolag** – flotta, rutter, priser, konkurrens med AI-bolag.
+
+Varje avdelning: egen vy att djupdyka i, egna uppdrag, egen personal och egna uppgraderingar.
+Hela flygplatsen behöver ändå din uppmärksamhet. Du kan bara vara på ett ställe i taget, så uppmärksamhet är en resurs.
+
+## 4. Mekaniker mot "för lätt / oändligt med pengar" (idéer, ej spikade)
+
+- Tillstånd och krav: t.ex. långdistans kräver längre bana, bättre instrumentlandning och myndighetsgodkännande via uppdrag.
+- Växande komplexitet: driftkostnad per passagerare stiger med storleken. Slitage och haverier.
+- Personal: kompetens, trötthet, utbildning, strejker.
+- Säsonger: midsommarrusning (charter), vinter (snöröjning, avisning).
+- Politik och grannar: buller, miljö, kommunen äger marken.
+- Konkurrerande grannflygplats som lockar bolag.
+- Ersättningar vid missade flyg, tappade väskor och omdirigeringar (finns i v0.1).
+
+## 5. Story och uppdrag (idéer, ej spikade)
+
+Lätt berättelse med få återkommande figurer: pensionerad flygplatschef (mentor), kommunalråd (markägare),
+representanter för flygbolagen. Uppdragskedjor per avdelning plus stora gemensamma händelser
+("Klara midsommarrusningen utan omdirigering", "Ta emot statsbesöket").
+
+## 6. Skala
+
+Målet är att kunna bygga en världsstor flygplats. Tekniska principer för det:
+- Detaljer ritas bara nära kameran. I översikten förenklas byggnader och passagerare syns som strömmar.
+- Simuleringen räknar passagerare i grupper och inte som individer (finns redan).
+- Golvläget ritar fullt bara närområdet.
+
+## 7. Kopplingspunkter: lämnas medvetet till senare
+
+Saker som byggs nu men måste hänga ihop med senare delar. Uppdatera när något läggs till.
+
+- **Entreprenörs-AI per avdelning**: varje avdelning behöver ett "halvbra autopilot"-läge med en kvalitetsnivå.
+  Spelarens uppgraderingar ersätter den.
+- **Gemensam ekonomi och rykte** för alla avdelningar. Varje avdelning bidrar med intäkter, kostnader och nöjdhet.
+- **Hub-abstraktion** i simuleringen (nod, anläggning, fordon, operatör) ska fungera för hamn och tåg.
+- **Händelsesystem** som kan skapa problem i vilken avdelning som helst, så att de kräver chefens närvaro.
+- **Namnge flygplatsen** vid nytt spel.
+
+## 8. Status
+
+- **v0.1 (prototyp, klar)**: simulering av flyg, passagerarflöden, bagage, avtal, ekonomi och händelser, med enkel rutgrafik.
+  Simuleringen är testad och behålls. Rutgrafiken ersätts.
+- **Pågår**: stilskiss för tecknad 3D med golvläge (`mockups/stilskiss.html`,
+  https://claude.ai/artifact/1gDptF3Z21PViLkAyMgiEB). Väntar på Kimms omdöme om stil och känsla.
+  Skissen är ritad helt i kod. Den riktiga versionen kan använda gratis modellpaket (CC0) för rikare figurer och fordon.
+
+## 9. Öppna frågor
+
+- Spelets slutliga namn.
+- Ska spelaren ha ett ansikte eller namn (anpassningsbar chefsfigur)?
+- Gratis med köp i appen eller betalspel? Det påverkar ekonomidesignen. Ska bestämmas före mobilversionen.

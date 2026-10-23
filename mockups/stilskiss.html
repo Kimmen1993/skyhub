@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="sv">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SkyHub stilskiss</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;800&display=swap">
+<style>
+/* Layout: helskärmsscen, små rundade "tecknade" paneler i hörnen med samma mörka kontur som 3D-figurerna.
+   Medvetet ett enda ljust spel-tema. */
+:root {
+  --ink: #1d2433;
+  --paper: #fffaf0;
+  --sky: #9fd8f5;
+  --coral: #e8634a;
+  --sun: #ffc93c;
+  --mint: #4cc38a;
+  --font-display: "Fredoka", "Nunito", system-ui, sans-serif;
+  --font-body: "Nunito", system-ui, sans-serif;
+  color-scheme: light;
+}
+html, body { height: 100%; }
+body { background: var(--sky); color: var(--ink); font-family: var(--font-body); overflow: hidden; -webkit-user-select: none; user-select: none; }
+#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.panel { background: var(--paper); border: 3px solid var(--ink); border-radius: 16px; box-shadow: 0 4px 0 var(--ink); }
+#hud { position: fixed; left: calc(14px + env(safe-area-inset-left, 0px)); top: calc(14px + env(safe-area-inset-top, 0px)); padding: 10px 14px; display: flex; flex-direction: column; gap: 4px; max-width: calc(100% - 28px); }
+#hud h1 { margin: 0; font: 700 18px var(--font-display); letter-spacing: 0.02em; }
+#hud .row { display: flex; gap: 12px; flex-wrap: wrap; font-weight: 800; font-size: 14px; }
+#hud .pill { font: 600 13px var(--font-display); padding: 2px 10px; border-radius: 999px; border: 2px solid var(--ink); }
+.ok { background: var(--mint); } .late { background: var(--coral); color: #fff; }
+#mode { position: fixed; right: calc(14px + env(safe-area-inset-right, 0px)); top: calc(14px + env(safe-area-inset-top, 0px)); font: 700 15px var(--font-display); padding: 10px 16px; cursor: pointer; background: var(--sun); }
+#mode:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+#mode:focus-visible { outline: 3px solid var(--coral); outline-offset: 3px; }
+#help { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); padding: 8px 14px; font-weight: 800; font-size: 13px; text-align: center; max-width: calc(100% - 28px); }
+#toast { position: fixed; left: 50%; top: calc(80px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); padding: 10px 16px; font: 600 15px var(--font-display); max-width: calc(100% - 28px); text-align: center; transition: opacity 0.3s, transform 0.3s; }
+#toast.hide { opacity: 0; transform: translate(-50%, -8px); pointer-events: none; }
+.bubble { position: fixed; transform: translate(-50%, -100%); display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; font: 600 14px var(--font-display); cursor: pointer; white-space: nowrap; background: var(--paper); }
+.bubble .ic { width: 28px; height: 28px; border-radius: 50%; background: var(--coral); color: #fff; display: grid; place-items: center; font: 700 18px var(--font-display); border: 2px solid var(--ink); animation: pulse 1s ease-in-out infinite; }
+.bubble.near { background: var(--sun); }
+.bubble .txt { display: none; }
+.bubble.near .txt, .bubble:hover .txt { display: inline; }
+@keyframes pulse { 50% { transform: scale(1.15); } }
+@media (prefers-reduced-motion: reduce) { .bubble .ic { animation: none; } #toast { transition: none; } }
+@media (max-width: 600px) { #hud h1 { font-size: 15px; } #mode { font-size: 13px; padding: 8px 12px; top: auto; bottom: calc(64px + env(safe-area-inset-bottom, 0px)); } }
+</style>
+
+<canvas id="c" aria-label="Tecknad vy av gate A1"></canvas>
+<div id="hud" class="panel">
+  <h1>Gate A1 · Skissen</h1>
+  <div class="row"><span id="clock">14:05</span><span>NV 231 → Oslo, avgång 14:35</span><span id="status" class="pill ok">I tid</span></div>
+</div>
+<button type="button" id="mode" class="panel">Översikt</button>
+<div id="help" class="panel">Gå med WASD eller piltangenterna, eller klicka på marken. Spring till <b>!</b> och tryck E eller klicka för att hjälpa till.</div>
+<div id="toast" class="panel hide" aria-live="polite"></div>
+<div id="bubbles"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+  const T = THREE;
+  const canvas = document.getElementById('c');
+  const renderer = new T.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;
+  renderer.outputEncoding = T.sRGBEncoding;
+  const scene = new T.Scene();
+  scene.background = new T.Color(0x9fd8f5);
+  scene.fog = new T.Fog(0x9fd8f5, 120, 260);
+  const camera = new T.PerspectiveCamera(36, 1, 0.5, 600);
+
+  // ---------- tecknade material ----------
+  const grad = (() => { const d = new Uint8Array([120, 120, 120, 255, 200, 200, 200, 255, 255, 255, 255, 255]); const t = new T.DataTexture(d, 3, 1, T.RGBAFormat); t.minFilter = t.magFilter = T.NearestFilter; t.needsUpdate = true; return t; })();
+  const mats = {};
+  const toon = (c) => mats[c] || (mats[c] = new T.MeshToonMaterial({ color: c, gradientMap: grad }));
+  const inkMat = new T.MeshBasicMaterial({ color: 0x1d2433, side: T.BackSide });
+  const OL = 0.07;
+  const geos = {};
+  function rboxGeo(w, h, d, r) {
+    const key = [w, h, d, r].join('|'); if (geos[key]) return geos[key];
+    r = Math.min(r, w / 2 - 0.01, h / 2 - 0.01, d / 2 - 0.01);
+    const b = r * 0.6, rc = Math.max(0.001, r - b), W = w - 2 * b, H = h - 2 * b;
+    const s = new T.Shape();
+    s.moveTo(-W / 2 + rc, -H / 2); s.lineTo(W / 2 - rc, -H / 2); s.quadraticCurveTo(W / 2, -H / 2, W / 2, -H / 2 + rc);
+    s.lineTo(W / 2, H / 2 - rc); s.quadraticCurveTo(W / 2, H / 2, W / 2 - rc, H / 2); s.lineTo(-W / 2 + rc, H / 2);
+    s.quadraticCurveTo(-W / 2, H / 2, -W / 2, H / 2 - rc); s.lineTo(-W / 2, -H / 2 + rc); s.quadraticCurveTo(-W / 2, -H / 2, -W / 2 + rc, -H / 2);
+    const g = new T.ExtrudeGeometry(s, { depth: Math.max(0.001, d - 2 * b), bevelEnabled: true, bevelThickness: b, bevelSize: b, bevelSegments: 2, curveSegments: 4 });
+    g.translate(0, 0, -(d - 2 * b) / 2); g.computeVertexNormals();
+    return (geos[key] = g);
+  }
+  function finish(m, parent, outlineGeo) {
+    m.castShadow = true; m.receiveShadow = true;
+    if (outlineGeo) { const o = new T.Mesh(outlineGeo, inkMat); m.add(o); }
+    (parent || scene).add(m); return m;
+  }
+  const rbox = (w, h, d, col, parent, r, ol) => finish(new T.Mesh(rboxGeo(w, h, d, r == null ? Math.min(w, h, d) * 0.18 : r), toon(col)), parent, ol === false ? null : rboxGeo(w + OL * 2, h + OL * 2, d + OL * 2, (r == null ? Math.min(w, h, d) * 0.18 : r) + OL));
+  const cyl = (rt, rb, h, col, parent, seg, ol) => finish(new T.Mesh(new T.CylinderGeometry(rt, rb, h, seg || 20), toon(col)), parent, ol === false ? null : new T.CylinderGeometry(rt + OL, rb + OL, h + OL * 2, seg || 20));
+  const sph = (r, col, parent, ol) => finish(new T.Mesh(new T.SphereGeometry(r, 20, 14), toon(col)), parent, ol === false ? null : new T.SphereGeometry(r + OL, 20, 14));
+  const at = (m, x, y, z) => (m.position.set(x, y, z), m);
+  function textTex(text, w, h, bg, fg, font) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d');
+    x.fillStyle = bg; x.fillRect(0, 0, w, h); x.fillStyle = fg; x.font = font; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(text, w / 2, h / 2 + 4);
+    const t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; return t;
+  }
+
+  // ---------- ljus ----------
+  scene.add(new T.HemisphereLight(0xffffff, 0x8fbf7a, 0.65));
+  const sun = new T.DirectionalLight(0xfff1d6, 0.85);
+  sun.position.set(-40, 70, -30); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+  Object.assign(sun.shadow.camera, { left: -70, right: 70, top: 60, bottom: -60, near: 1, far: 220 }); sun.shadow.camera.updateProjectionMatrix();
+  sun.shadow.bias = -0.0008; sun.shadow.normalBias = 0.02;
+  scene.add(sun);
+
+  // ---------- mark ----------
+  const ground = new T.Mesh(new T.PlaneGeometry(600, 600), toon(0x86cc6e)); ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+  const flat = (w, d, x, z, col, y) => { const m = new T.Mesh(new T.PlaneGeometry(w, d), toon(col)); m.rotation.x = -Math.PI / 2; m.position.set(x, y || 0.02, z); m.receiveShadow = true; scene.add(m); return m; };
+  flat(110, 40, 0, -18, 0xcdd5de, 0.02);
+  flat(160, 7, 0, -41, 0x5a6273, 0.03); flat(160, 0.35, 0, -41, 0xffc93c, 0.05);
+  flat(240, 12, 0, -58, 0x4d5465, 0.03);
+  for (let x = -110; x <= 110; x += 10) flat(5, 0.5, x, -58, 0xffffff, 0.05);
+  flat(0.4, 20, -14, -24, 0xffc93c, 0.04); flat(6, 0.4, -14, -5.5, 0xffc93c, 0.04);
+  flat(0.4, 20, 18, -24, 0xffc93c, 0.04); flat(6, 0.4, 18, -5.5, 0xffc93c, 0.04);
+  flat(110, 6, 0, 30, 0x5a6273, 0.02);
+
+  // ---------- terminal ----------
+  const term = new T.Group(); term.position.set(0, 0, 10); scene.add(term);
+  at(rbox(76, 9, 20, 0xf6ecd9, term, 0.8), 0, 4.5, 0);
+  at(rbox(70, 4.8, 0.8, 0x86d0ee, term, 0.3), 0, 5, -10.1);
+  for (let x = -34; x <= 34; x += 4) at(rbox(0.5, 4.8, 1.0, 0x3c4a63, term, 0.15, false), x, 5, -10.15);
+  at(rbox(80, 1.4, 23, 0xe8634a, term, 0.6), 0, 9.9, 0);
+  at(rbox(20, 2.6, 1.2, 0x1d2433, term, 0.5), 0, 12.4, -8);
+  const nameSign = new T.Mesh(new T.PlaneGeometry(19, 2.2), new T.MeshBasicMaterial({ map: textTex('SKYHUB', 760, 88, '#1d2433', '#ffc93c', '700 72px Fredoka, sans-serif') }));
+  nameSign.position.set(0, 12.4, -8.65); nameSign.rotation.y = Math.PI; term.add(nameSign);
+  const gateSign = new T.Mesh(new T.PlaneGeometry(4.4, 1.6), new T.MeshBasicMaterial({ map: textTex('A1', 220, 80, '#ffc93c', '#1d2433', '700 60px Fredoka, sans-serif') }));
+  gateSign.position.set(-8, 8.2, -10.75); gateSign.rotation.y = Math.PI; term.add(gateSign);
+  // bagageport
+  at(rbox(5, 3.2, 0.6, 0x3c4a63, term, 0.3), 4, 1.6, -10.1);
+
+  // ---------- flygbrygga ----------
+  const br = new T.Group(); scene.add(br);
+  at(cyl(1.8, 1.8, 3.2, 0xd9dee6, br), -8, 4.2, -3);
+  at(cyl(0.4, 0.4, 4.2, 0x6b7489, br, 10), -8, 2.1, -3);
+  {
+    const a = new T.Vector3(-8, 4.2, -3), b = new T.Vector3(-11.6, 4.2, -9.4), L = a.distanceTo(b);
+    const tube = at(rbox(2.8, 3, L, 0xd9dee6, br, 0.5), (a.x + b.x) / 2, 4.2, (a.z + b.z) / 2); tube.rotation.y = Math.atan2(b.x - a.x, b.z - a.z);
+    at(cyl(0.3, 0.3, 3, 0x6b7489, br, 10), -10.4, 1.5, -7.2);
+    at(rbox(1.6, 0.6, 1.0, 0x3c4a63, br, 0.2), -10.4, 0.3, -7.2);
+  }
+
+  // ---------- flygplan ----------
+  function plane(livery, accent) {
+    const g = new T.Group();
+    const body = cyl(2.1, 2.1, 16, 0xffffff, g, 24); body.rotation.x = Math.PI / 2;
+    const nose = sph(2.1, 0xffffff, g); nose.scale.set(1, 0.95, 1.55); nose.position.z = 8;
+    const tail = finish(new T.Mesh(new T.ConeGeometry(2.1, 7, 24), toon(0xffffff)), g, new T.ConeGeometry(2.1 + OL, 7 + OL * 2, 24));
+    tail.rotation.x = -Math.PI / 2; tail.position.set(0, 0.5, -11.4); tail.scale.set(1, 1, 0.7);
+    at(rbox(2.6, 0.7, 1.2, 0x2e3a52, g, 0.3), 0, 1.0, 10.2).rotation.x = 0.5;
+    for (const sx of [1, -1]) {
+      at(rbox(0.3, 0.6, 18, livery, g, 0.15, false), sx * 2.08, -0.5, 0);
+      for (let z = -6.5; z <= 6.5; z += 1.3) { const w = sph(0.26, 0x2e3a52, g, false); w.position.set(sx * 2.03, 0.55, z); w.scale.set(0.4, 1, 1); }
+      const wing = at(rbox(12, 0.55, 4.4, 0xf1f3f7, g, 0.25), sx * 7.6, -0.9, -0.4); wing.rotation.y = sx * 0.28;
+      at(rbox(0.4, 1.6, 1.4, accent, g, 0.15), sx * 13.4, -0.2, -2.3);
+      const eng = cyl(1.15, 1.0, 3.4, 0xe3e7ee, g); eng.rotation.x = Math.PI / 2; eng.position.set(sx * 5, -2.1, 1.6);
+      const inl = cyl(0.85, 0.85, 0.2, 0x2e3a52, g, 20, false); inl.rotation.x = Math.PI / 2; inl.position.set(sx * 5, -2.1, 3.35);
+      const hs = at(rbox(5.4, 0.4, 2.4, 0xf1f3f7, g, 0.18), sx * 3.2, 1.2, -12.4); hs.rotation.y = sx * 0.3;
+      const gear = cyl(0.25, 0.25, 1.6, 0x6b7489, g, 8, false); gear.position.set(sx * 2.2, -2.6, -0.8);
+      const wh = cyl(0.7, 0.7, 0.6, 0x2a2f3a, g, 16); wh.rotation.z = Math.PI / 2; wh.position.set(sx * 2.2, -3.2, -0.8);
+    }
+    const fin = at(rbox(0.6, 6.4, 4.6, livery, g, 0.25), 0, 4.2, -11.6); fin.rotation.x = -0.4;
+    const ng = cyl(0.2, 0.2, 1.6, 0x6b7489, g, 8, false); ng.position.set(0, -2.6, 7);
+    const nw = cyl(0.55, 0.55, 0.5, 0x2a2f3a, g, 16); nw.rotation.z = Math.PI / 2; nw.position.set(0, -3.3, 7);
+    g.traverse((o) => { if (o.isMesh && o.material !== inkMat) o.castShadow = true; });
+    scene.add(g); return g;
+  }
+  const pA = plane(0x2f6fdb, 0xffc93c); pA.position.set(-14, 3.85, -17);
+  const pB = plane(0x2fa36b, 0xffffff); pB.position.set(18, 3.85, -17);
+  const pTaxi = plane(0xe8634a, 0xffc93c); pTaxi.scale.setScalar(0.9);
+
+  // trappa vid fjärrplatsen
+  const stairs = new T.Group(); scene.add(stairs);
+  for (let i = 0; i < 7; i++) at(rbox(1.8, 0.35, 0.9, 0xd9dee6, stairs, 0.1), 12.8 + i * 0.55, 0.4 + i * 0.5, -8);
+  at(rbox(4.6, 1.0, 1.8, 0xffc93c, stairs, 0.3), 13.6, 0.6, -8);
+  // buss
+  const bus = new T.Group(); bus.position.set(6, 0, -8); scene.add(bus);
+  at(rbox(3, 3, 10, 0x4cc38a, bus, 0.8), 0, 1.9, 0);
+  at(rbox(3.1, 1.1, 9, 0x86d0ee, bus, 0.4, false), 0, 2.5, 0);
+  for (const z of [-3.3, 3.3]) for (const sx of [1, -1]) { const w = cyl(0.6, 0.6, 0.5, 0x2a2f3a, bus, 14); w.rotation.z = Math.PI / 2; w.position.set(sx * 1.4, 0.6, z); }
+
+  // tankbil
+  const fuel = new T.Group(); fuel.position.set(0.5, 0, -25); fuel.rotation.y = 0.3; scene.add(fuel);
+  at(rbox(2.6, 2.4, 3, 0xe8634a, fuel, 0.5), 0, 1.6, 3.2);
+  at(cyl(1.4, 1.4, 6, 0xf1f3f7, fuel), 0, 2, -1.3).rotation.x = Math.PI / 2;
+  for (const z of [3, -0.5, -3]) for (const sx of [1, -1]) { const w = cyl(0.55, 0.55, 0.45, 0x2a2f3a, fuel, 14); w.rotation.z = Math.PI / 2; w.position.set(sx * 1.3, 0.55, z); }
+
+  // bagagetåg
+  const train = new T.Group(); scene.add(train);
+  const cars = [];
+  const tug = new T.Group(); train.add(tug); cars.push(tug);
+  at(rbox(1.8, 1.2, 2.4, 0xffc93c, tug, 0.35), 0, 0.9, 0); at(rbox(1.5, 1.0, 1.0, 0x86d0ee, tug, 0.25), 0, 1.9, -0.4);
+  for (let i = 0; i < 3; i++) {
+    const c = new T.Group(); train.add(c); cars.push(c);
+    at(rbox(1.8, 0.4, 2.4, 0x6b7489, c, 0.12), 0, 0.6, 0);
+    const bagCols = [0xe8634a, 0x2f6fdb, 0x8b5cf6, 0x4cc38a, 0xffc93c];
+    for (let j = 0; j < 4; j++) at(rbox(0.7, 0.55, 0.9, bagCols[(i * 4 + j) % 5], c, 0.15), (j % 2 ? 0.42 : -0.42), 1.1 + (j > 1 ? 0.55 : 0), (j % 2 ? -0.3 : 0.4));
+  }
+  // bandlastare vid lastrummet
+  const loader = new T.Group(); loader.position.set(-10.2, 0, -21); scene.add(loader);
+  at(rbox(1.8, 0.8, 4, 0xffc93c, loader, 0.3), 0, 0.6, 0);
+  const belt = at(rbox(1.2, 0.3, 6, 0x3c4a63, loader, 0.1), 0, 1.6, 1.6); belt.rotation.x = -0.35;
+
+  // flygledartorn
+  const tw = new T.Group(); tw.position.set(46, 0, 18); scene.add(tw);
+  at(cyl(3.2, 4, 3, 0xf6ecd9, tw), 0, 1.5, 0);
+  at(cyl(2, 2.6, 18, 0xffffff, tw), 0, 12, 0);
+  for (let y = 6; y < 20; y += 4) at(cyl(2.25, 2.25, 0.8, 0xe8634a, tw, 20, false), 0, y, 0);
+  at(cyl(5, 3, 2, 0xf6ecd9, tw, 10), 0, 22, 0);
+  at(cyl(5.2, 4.8, 3.2, 0x86d0ee, tw, 10), 0, 24.6, 0);
+  at(cyl(5.8, 5.8, 0.8, 0xe8634a, tw, 10), 0, 26.6, 0);
+  at(sph(1.2, 0xffffff, tw), 0, 27.8, 0);
+  at(cyl(0.12, 0.12, 4, 0x3c4a63, tw, 6, false), 0, 30, 0);
+
+  // träd
+  for (let i = 0; i < 70; i++) {
+    const a = i * 2.39996, r = 70 + (i % 9) * 6;
+    const x = Math.cos(a) * r, z = Math.sin(a) * r * 0.75 + 5;
+    if (z < -32 && z > -66) continue;
+    const g = new T.Group(); g.position.set(x, 0, z); scene.add(g);
+    at(cyl(0.4, 0.55, 2.4, 0x8a5a3c, g, 8), 0, 1.2, 0);
+    const s = 1.8 + (i % 4) * 0.5;
+    at(sph(s, i % 3 ? 0x4fae5c : 0x3f9a52, g), 0, 3 + s * 0.8, 0);
+    at(sph(s * 0.7, i % 3 ? 0x5fbe68 : 0x4fae5c, g), s * 0.6, 2.6 + s * 0.6, s * 0.3);
+  }
+
+  // ---------- figurer ----------
+  function person(o) {
+    const g = new T.Group(); scene.add(g);
+    const legs = [], arms = [];
+    const pivot = (m, y) => { m.geometry = m.geometry.clone().translate(0, y, 0); m.children.forEach((c) => (c.geometry = c.geometry.clone().translate(0, y, 0))); return m; };
+    for (const sx of [1, -1]) { const l = pivot(cyl(0.17, 0.15, 0.8, o.pants, g, 10), -0.4); l.position.set(sx * 0.2, 0.8, 0); legs.push(l); }
+    const body = at(rbox(0.85, 0.95, 0.55, o.shirt, g, 0.22), 0, 1.25, 0);
+    if (o.vest) at(rbox(0.9, 0.55, 0.6, o.vest, g, 0.2, false), 0, 1.3, 0);
+    if (o.tie) { at(rbox(0.3, 0.6, 0.1, 0xffffff, g, 0.05, false), 0, 1.38, 0.27); at(rbox(0.12, 0.5, 0.1, o.tie, g, 0.04, false), 0, 1.33, 0.31); }
+    for (const sx of [1, -1]) { const a = pivot(cyl(0.13, 0.12, 0.75, o.shirt, g, 8), -0.37); a.position.set(sx * 0.56, 1.62, 0); arms.push(a); }
+    const head = at(sph(0.42, o.skin, g), 0, 2.05, 0);
+    const hair = sph(0.44, o.hair, g, false); hair.position.set(0, 2.15, -0.06); hair.scale.set(1, 0.75, 0.95);
+    if (o.cap) { at(cyl(0.45, 0.45, 0.22, o.cap, g, 16), 0, 2.4, 0); at(rbox(0.5, 0.06, 0.4, o.cap, g, 0.03, false), 0, 2.32, 0.4); }
+    for (const sx of [1, -1]) at(sph(0.06, 0x1d2433, g, false), sx * 0.14, 2.1, 0.38);
+    if (o.bag) at(rbox(0.55, 0.7, 0.3, o.bag, g, 0.12), 0.75, 0.55, 0);
+    if (o.clip) { const c = at(rbox(0.45, 0.6, 0.06, 0x8a5a3c, g, 0.04), 0.5, 1.2, 0.35); c.rotation.x = -0.4; }
+    g.userData = { legs, arms, phase: Math.random() * 6 };
+    g.traverse((m) => { if (m.isMesh && m.material !== inkMat) m.castShadow = true; });
+    return g;
+  }
+  function animate(p, moving, dt) {
+    const u = p.userData; u.phase += dt * (moving ? 11 : 2);
+    const sw = moving ? Math.sin(u.phase) * 0.6 : 0;
+    u.legs[0].rotation.x = sw; u.legs[1].rotation.x = -sw; u.arms[0].rotation.x = -sw * 0.8; u.arms[1].rotation.x = sw * 0.8;
+    p.position.y = moving ? Math.abs(Math.sin(u.phase)) * 0.12 : Math.sin(u.phase) * 0.02;
+  }
+  const skins = [0xf3c9a5, 0xe0a983, 0xb97a55, 0x8a5a3c, 0xf7d9c0];
+  const hairs = [0x3b2a20, 0x1d2433, 0xd9a441, 0x8a5a3c, 0xb0b6c2];
+
+  const manager = person({ shirt: 0x2f4a8a, pants: 0x24345f, skin: 0xf3c9a5, hair: 0x3b2a20, tie: 0xe8634a, clip: true });
+  manager.position.set(-4, 0, -6); manager.scale.setScalar(1.15);
+  // markpersonal
+  const crew = [
+    Object.assign(person({ shirt: 0x3c4a63, pants: 0x3c4a63, skin: skins[1], hair: hairs[0], vest: 0xffb11a, cap: 0x3c4a63 }), { home: new T.Vector3(-12, 0, -25) }),
+    Object.assign(person({ shirt: 0x3c4a63, pants: 0x3c4a63, skin: skins[3], hair: hairs[1], vest: 0xffb11a }), { home: new T.Vector3(-8.5, 0, -23) }),
+    Object.assign(person({ shirt: 0x3c4a63, pants: 0x3c4a63, skin: skins[0], hair: hairs[2], vest: 0x9be15d, cap: 0xe8634a }), { home: new T.Vector3(-21, 0, -10) }),
+  ];
+  crew.forEach((c) => c.position.copy(c.home));
+  // passagerare buss → trappa
+  const pax = [];
+  const paxCols = [0xe8634a, 0x8b5cf6, 0x2f6fdb, 0xffc93c, 0x4cc38a, 0xf28cb1];
+  for (let i = 0; i < 9; i++) pax.push(Object.assign(person({ shirt: paxCols[i % 6], pants: [0x24345f, 0x3c4a63, 0x8a5a3c][i % 3], skin: skins[i % 5], hair: hairs[i % 5], bag: [0x1d2433, 0xe8634a, 0x2f6fdb][i % 3] }), { t: i / 9 }));
+  const paxPath = [new T.Vector3(7.8, 0, -9.5), new T.Vector3(11.8, 0, -9.2), new T.Vector3(12.4, 0, -8), new T.Vector3(16.2, 3.6, -8)];
+  // vilsen passagerare
+  const lost = person({ shirt: 0xf28cb1, pants: 0x24345f, skin: skins[2], hair: hairs[4], bag: 0x8b5cf6 });
+  lost.visible = false;
+
+  // ---------- problem ----------
+  const problems = {
+    cart: { title: 'Bagagetåget har fastnat', done: 'Du fick loss bagagetåget. Lastningen fortsätter.', pos: () => tug.getWorldPosition(new T.Vector3()) },
+    lost: { title: 'En passagerare har gått vilse på plattan', done: 'Du följde passageraren tillbaka till terminalen.', pos: () => lost.position.clone() },
+    fuel: { title: 'Tankbilen väntar på din signatur', done: 'Tankningen är godkänd. Planet kan tankas klart.', pos: () => fuel.position.clone().add(new T.Vector3(0, 0, 3)) },
+  };
+  let active = null, nextIn = 2, lastProb = null, delay = 0, fixes = 0, lostWalk = null;
+  function activate(id) {
+    active = { id, since: 0, el: document.createElement('div') };
+    active.el.className = 'bubble panel';
+    active.el.innerHTML = `<span class="ic">!</span><span class="txt">${problems[id].title}</span>`;
+    active.el.addEventListener('click', (e) => { e.stopPropagation(); tryFix(true); });
+    document.getElementById('bubbles').appendChild(active.el);
+    if (id === 'lost') { lost.visible = true; lost.position.set(-30, 0, -12); lostWalk = null; }
+  }
+  function tryFix(fromClick) {
+    if (!active) return;
+    const p = problems[active.id].pos();
+    if (manager.position.distanceTo(new T.Vector3(p.x, 0, p.z)) < 4.2) {
+      toast(problems[active.id].done);
+      if (active.id === 'lost') lostWalk = new T.Vector3(-22, 0, -0.5);
+      active.el.remove(); lastProb = active.id; active = null; nextIn = 6 + Math.random() * 4; fixes++;
+      burst(new T.Vector3(p.x, 2.5, p.z));
+    } else if (fromClick) { target = new T.Vector3(p.x, 0, p.z + 2); setMode(0); }
+  }
+  // stjärnor när man hjälpt till
+  const stars = [];
+  function burst(p) {
+    for (let i = 0; i < 12; i++) {
+      const s = sph(0.22, i % 2 ? 0xffc93c : 0xffffff, scene, false); s.position.copy(p);
+      stars.push({ m: s, v: new T.Vector3((Math.random() - 0.5) * 8, 6 + Math.random() * 4, (Math.random() - 0.5) * 8), life: 1 });
+    }
+  }
+  let toastT = 0;
+  function toast(msg) { const el = document.getElementById('toast'); el.textContent = msg; el.classList.remove('hide'); toastT = 3.2; }
+
+  // ---------- kamera och styrning ----------
+  let mode = 0, modeK = 0; // 0 = golvläge, 1 = översikt
+  const btn = document.getElementById('mode');
+  function setMode(m) { mode = m; btn.textContent = m ? 'Gå ner på golvet' : 'Översikt'; }
+  btn.addEventListener('click', () => setMode(mode ? 0 : 1));
+  const keys = new Set();
+  window.addEventListener('keydown', (e) => {
+    const k = e.key.toLowerCase(); keys.add(k);
+    if (k === 'e' || k === ' ') { e.preventDefault(); tryFix(false); }
+    if (k === 'tab' || k === 'o') { e.preventDefault(); setMode(mode ? 0 : 1); }
+  });
+  window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
+  let target = null;
+  const ray = new T.Raycaster(), groundPlane = new T.Plane(new T.Vector3(0, 1, 0), 0);
+  let down = null;
+  canvas.addEventListener('pointerdown', (e) => { down = { x: e.clientX, y: e.clientY }; });
+  canvas.addEventListener('pointerup', (e) => {
+    if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 8) { down = null; return; }
+    down = null;
+    ray.setFromCamera(new T.Vector2(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1), camera);
+    const p = new T.Vector3(); if (!ray.ray.intersectPlane(groundPlane, p)) return;
+    p.x = Math.max(-50, Math.min(50, p.x)); p.z = Math.max(-36, Math.min(-1, p.z));
+    if (mode === 1) { manager.position.set(p.x, 0, p.z); target = null; setMode(0); burst(new T.Vector3(p.x, 1, p.z)); }
+    else target = p;
+  });
+
+  const camPos = new T.Vector3(), camLook = new T.Vector3();
+  function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
+  window.addEventListener('resize', resize); resize();
+
+  // ---------- loop ----------
+  let last = performance.now(), clock = 14 * 60 + 5, trainT = 0;
+  const trainPath = [new T.Vector3(4, 0, -1.5), new T.Vector3(4, 0, -27), new T.Vector3(-8.5, 0, -27), new T.Vector3(-8.5, 0, -24)];
+  const pathLen = (pts) => pts.slice(1).reduce((a, p, i) => a + p.distanceTo(pts[i]), 0);
+  const along = (pts, d) => { for (let i = 1; i < pts.length; i++) { const L = pts[i].distanceTo(pts[i - 1]); if (d <= L) return { p: pts[i - 1].clone().lerp(pts[i], d / L), dir: pts[i].clone().sub(pts[i - 1]).normalize() }; d -= L; } return { p: pts[pts.length - 1].clone(), dir: pts[pts.length - 1].clone().sub(pts[pts.length - 2]).normalize() }; };
+  const tLen = pathLen(trainPath);
+
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    const t = now / 1000;
+    clock += dt * 1.0;
+
+    // chefen
+    let mv = new T.Vector3();
+    if (keys.has('w') || keys.has('arrowup')) mv.z += 1;
+    if (keys.has('s') || keys.has('arrowdown')) mv.z -= 1;
+    if (keys.has('a') || keys.has('arrowleft')) mv.x += 1;
+    if (keys.has('d') || keys.has('arrowright')) mv.x -= 1;
+    if (mv.lengthSq()) { target = null; mv.normalize(); }
+    else if (target) { mv = target.clone().sub(manager.position); mv.y = 0; if (mv.length() < 0.3) { target = null; mv.set(0, 0, 0); } else mv.normalize(); }
+    const moving = mv.lengthSq() > 0 && mode === 0;
+    if (moving) {
+      manager.position.addScaledVector(mv, 7 * dt);
+      manager.position.x = Math.max(-50, Math.min(50, manager.position.x)); manager.position.z = Math.max(-36, Math.min(-1, manager.position.z));
+      const want = Math.atan2(mv.x, mv.z); let d = want - manager.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); manager.rotation.y += d * Math.min(1, dt * 12);
+    }
+    animate(manager, moving, dt);
+
+    // bagagetåg (står still om det har fastnat)
+    const stuck = active && active.id === 'cart';
+    if (!stuck) trainT = (trainT + dt * 4) % (tLen * 2 + 8);
+    const leg = trainT < tLen ? trainT : trainT < tLen + 4 ? tLen : trainT < tLen * 2 + 4 ? tLen * 2 + 4 - trainT : 0;
+    cars.forEach((c, i) => { const a = along(trainPath, Math.max(0, leg - i * 2.8)); c.position.copy(a.p); c.rotation.y = Math.atan2(a.dir.x, a.dir.z); if (stuck && i === 0) c.position.y = Math.abs(Math.sin(t * 20)) * 0.08; });
+    // personal
+    crew.forEach((c, i) => {
+      if (i === 2) { const a = t * 0.5; const p = c.home.clone().add(new T.Vector3(Math.cos(a) * 3, 0, Math.sin(a) * 3)); c.rotation.y = Math.atan2(-Math.sin(a), Math.cos(a)); c.position.copy(p); animate(c, true, dt); }
+      else { c.rotation.y = Math.sin(t * 0.7 + i) * 0.6 + Math.PI; animate(c, false, dt); if (active && active.id === 'fuel' && i === 1) c.userData.arms[0].rotation.x = -2.6 + Math.sin(t * 8) * 0.4; }
+    });
+    // passagerare
+    pax.forEach((p) => {
+      p.t = (p.t + dt * 0.05) % 1;
+      const L = pathLen(paxPath), a = along(paxPath, p.t * L);
+      p.position.copy(a.p); p.rotation.y = Math.atan2(a.dir.x, a.dir.z); animate(p, true, dt); p.position.y += a.p.y;
+      p.visible = p.t < 0.97;
+    });
+    // vilsen passagerare
+    if (lost.visible) {
+      if (lostWalk) {
+        const d = lostWalk.clone().sub(lost.position); d.y = 0;
+        if (d.length() < 0.5) { lost.visible = false; lostWalk = null; }
+        else { d.normalize(); lost.position.addScaledVector(d, 4 * dt); lost.rotation.y = Math.atan2(d.x, d.z); animate(lost, true, dt); }
+      } else { lost.rotation.y = t * 1.2; animate(lost, false, dt); }
+    }
+    // taxande plan
+    const u = (t * 0.03) % 1, tx = 120 - u * 240;
+    pTaxi.position.set(tx, 3.5, -41); pTaxi.rotation.y = -Math.PI / 2;
+
+    // problem
+    if (!active) { nextIn -= dt; if (nextIn <= 0) { const ids = Object.keys(problems).filter((k) => k !== lastProb); activate(ids[Math.floor(Math.random() * ids.length)]); } }
+    else {
+      active.since += dt;
+      if (active.since > 12 && Math.floor(active.since) % 4 === 0 && Math.floor(active.since - dt) % 4 !== 0) delay++;
+    }
+    const st = document.getElementById('status');
+    st.textContent = delay ? `Försenad +${delay} min` : 'I tid'; st.className = 'pill ' + (delay ? 'late' : 'ok');
+    const hh = Math.floor(clock / 60) % 24, mm = Math.floor(clock % 60);
+    document.getElementById('clock').textContent = String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+
+    // stjärnor
+    for (let i = stars.length - 1; i >= 0; i--) { const s = stars[i]; s.v.y -= 18 * dt; s.m.position.addScaledVector(s.v, dt); s.life -= dt; s.m.scale.setScalar(Math.max(0.01, s.life)); if (s.life <= 0) { scene.remove(s.m); stars.splice(i, 1); } }
+    if (toastT > 0) { toastT -= dt; if (toastT <= 0) document.getElementById('toast').classList.add('hide'); }
+
+    // kamera
+    modeK += ((mode ? 1 : 0) - modeK) * Math.min(1, dt * 3);
+    const mp = manager.position;
+    const floorPos = new T.Vector3(mp.x, 11, mp.z - 15), floorLook = new T.Vector3(mp.x, 1.8, mp.z + 2);
+    const overPos = new T.Vector3(8, 78, -92), overLook = new T.Vector3(4, 0, -12);
+    camPos.copy(floorPos).lerp(overPos, modeK); camLook.copy(floorLook).lerp(overLook, modeK);
+    camera.position.lerp(camPos, Math.min(1, dt * 6)); if (camera.position.lengthSq() < 1) camera.position.copy(camPos);
+    camera.lookAt(camLook);
+
+    // pratbubbla
+    if (active) {
+      const p = problems[active.id].pos().add(new T.Vector3(0, 4.2, 0)).project(camera);
+      active.el.style.left = ((p.x + 1) / 2 * innerWidth) + 'px'; active.el.style.top = ((1 - p.y) / 2 * innerHeight) + 'px';
+      const q = problems[active.id].pos();
+      active.el.classList.toggle('near', manager.position.distanceTo(new T.Vector3(q.x, 0, q.z)) < 4.2);
+    }
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  }
+  camera.position.set(-4, 11, -21);
+  requestAnimationFrame(frame);
+})();
+</script>

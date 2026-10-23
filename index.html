@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SkyHub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;800&display=swap">
+<style>
+/* Startsida för testning: samma tecknade formspråk som stilskissen. */
+:root {
+  --ink: #1d2433;
+  --paper: #fffaf0;
+  --sky: #9fd8f5;
+  --coral: #e8634a;
+  --sun: #ffc93c;
+  --muted: #4e5a70;
+  --font-display: "Fredoka", "Nunito", system-ui, sans-serif;
+  --font-body: "Nunito", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--sky); color: var(--ink); font-family: var(--font-body); }
+main { max-width: 720px; margin: 0 auto; padding-block: 40px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 22px; }
+h1 { margin: 0; font: 700 clamp(40px, 9vw, 64px)/1 var(--font-display); letter-spacing: 0.02em; }
+h1 span { color: var(--coral); }
+.lead { margin: 0; font-size: 17px; max-width: 60ch; line-height: 1.5; }
+.list { display: flex; flex-direction: column; gap: 14px; }
+a.card { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; align-items: center; text-decoration: none; color: inherit; background: var(--paper); border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 5px 0 var(--ink); padding: 16px 18px; transition: transform 0.1s; }
+a.card:hover { transform: translateY(-2px); }
+a.card:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--ink); }
+a.card:focus-visible { outline: 3px solid var(--coral); outline-offset: 4px; }
+.card h2 { margin: 0; font: 600 21px var(--font-display); }
+.card p { margin: 0; color: var(--muted); grid-column: 1; line-height: 1.45; }
+.card .go { grid-row: 1 / 3; grid-column: 2; font: 700 15px var(--font-display); background: var(--sun); border: 2px solid var(--ink); border-radius: 999px; padding: 6px 14px; white-space: nowrap; }
+.card.main { background: #fff3c4; }
+.tag { font: 600 12px var(--font-display); letter-spacing: 0.08em; text-transform: uppercase; color: var(--coral); }
+footer { color: var(--muted); font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { a.card { transition: none; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Sky<span>Hub</span></h1>
+  <p class="lead">Testversioner av flygplatsspelet. Den översta är den senaste. Ladda om sidan (Ctrl+F5) om du inte ser den nya versionen.</p>
+  <div class="list">
+    <a class="card main" href="mockups/stilskiss.html">
+      <span class="tag">Senaste</span>
+      <h2>Stilskiss: gate A1</h2>
+      <p>Tecknad stil. Styr flygplatschefen och lös problem på plattan.</p>
+      <span class="go">Spela</span>
+    </a>
+    <a class="card" href="mockups/grafikval.html">
+      <h2>Grafikval: tre spår</h2>
+      <p>Tidigare jämförelse: 3D, isometrisk och ritning uppifrån.</p>
+      <span class="go">Visa</span>
+    </a>
+    <a class="card" href="prototyp-v01/index.html">
+      <h2>Prototyp v0.1</h2>
+      <p>Första spelbara versionen med enkel rutgrafik. Simuleringen lever vidare.</p>
+      <span class="go">Spela</span>
+    </a>
+  </div>
+  <footer>Uppdaterad 2026-10-23</footer>
+</main>
+</body>
+</html>

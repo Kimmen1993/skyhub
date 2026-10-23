@@ -1,0 +1,11 @@
+const { Sim } = SH;
+const days = 3;
+const s = Sim.create(12345);
+let t0 = Date.now();
+for (let i = 0; i < days * 1440 * 4; i++) Sim.advance(s, 0.25);
+console.log('ms', Date.now() - t0, 'flights alive', s.flights.length, 'money', Math.round(s.money), 'sat', Math.round(s.sat), 'rep', Math.round(s.rep));
+s.history.forEach(h => console.log(JSON.stringify({ day: h.day, inc: h.income, cost: h.cost, sat: h.sat, rep: h.rep, arr: h.d.arr, dep: h.d.dep, ontime: h.d.ontime, delayed: h.d.delayed, div: h.d.diverted, pax: h.d.pax, missed: h.d.missed, bags: h.d.bagsLost, i: h.d.inc })));
+console.log(s.log.slice(-12).map(l => Sim.fmtTime(l.t) + ' ' + l.msg).join('\n'));
+const s2 = Sim.load(Sim.serialize(s)); Sim.advance(s2, 300); console.log('reload ok', s2.flights.length);
+console.log('states', s.flights.map(f => f.code + ':' + f.st).join(' '));
+console.log('offers', JSON.stringify(s.offers.map(o=>[o.airline,o.size,o.times.length])));
