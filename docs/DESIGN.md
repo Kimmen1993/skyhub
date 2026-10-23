@@ -21,6 +21,7 @@ Spelet ska kräva strategi hela vägen och inte lösas på en timme och sedan ba
 | Datum | Beslut | Skäl |
 |---|---|---|
 | 2026-10-23 | Testas som webbsida via en länk (Claude-artefakt). Mobilappar (iOS/Android) senare. | Enkelt att testa på Mac och Windows. |
+| 2026-10-23 | Testning sker via **GitHub Pages**: https://kimmen1993.github.io/skyhub/ (publikt repo Kimmen1993/skyhub). Claude-artefakter används inte längre för test. | Jobbdatorn blockerar claude.ai. TeamViewer-tunneln laggar för mycket. |
 | 2026-10-23 | Simuleringen är skild från grafiken (`js/sim.js` har ingen grafik). | Grafiken kan bytas utan att spelet byggs om. Samma kärna för hamn och resecentrum. |
 | 2026-10-23 | Grafik: **tecknad, stiliserad 3D** (toon/low-poly). Inte realistisk 3D, inte platta rutor. Referenser: Two Point Hospital, Overcooked, My Perfect Hotel. | Kimm: v0.1-rutorna var oläsliga och 3D-skisserna för realistiska och stela. |
 | 2026-10-23 | Två kameralägen: **översikt** (chefsläget, hela området) och **golvläget** (styr chefsfiguren, kamera snett ovanifrån nära golvet, inte förstapersonsvy). | Kimm vill kunna hoppa in och hjälpa till när något strular. |
@@ -79,7 +80,7 @@ Saker som byggs nu men måste hänga ihop med senare delar. Uppdatera när någo
 - **v0.1 (prototyp, klar)**: simulering av flyg, passagerarflöden, bagage, avtal, ekonomi och händelser, med enkel rutgrafik.
   Simuleringen är testad och behålls. Rutgrafiken ersätts.
 - **Pågår**: stilskiss för tecknad 3D med golvläge (`mockups/stilskiss.html`,
-  https://claude.ai/artifact/1gDptF3Z21PViLkAyMgiEB). Väntar på Kimms omdöme om stil och känsla.
+  https://kimmen1993.github.io/skyhub/mockups/stilskiss.html). Väntar på Kimms omdöme om stil och känsla.
   Skissen är ritad helt i kod. Den riktiga versionen kan använda gratis modellpaket (CC0) för rikare figurer och fordon.
 
 ## 9. Öppna frågor
