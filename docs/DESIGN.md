@@ -33,6 +33,13 @@ Spelet ska kräva strategi hela vägen och inte lösas på en timme och sedan ba
 | 2026-10-23 | **Förflyttning i tre nivåer**: spring (Shift), fordon (Follow me-bil på plattan, senare segway/elbil i terminalen) och hopp via översikten. Fordonen är uppgraderingar som låses upp. Bilen följer trafikregler: för fort nära plan sänker säkerhetsbetyget. | Stora avstånd när flygplatsen växer. Fordonen blir spelmekanik i stället för fusk. |
 | 2026-10-23 | **Sparning** i riktiga spelet: autospar, flera platser, exportkod. Molnsparning senare (dela mellan Mac, jobbdator, mobil). | Kimm byter mellan datorer. |
 | 2026-10-23 | **Verklighetstroget upplägg på plattan**: uppställning, taxilinje direkt bakom, huvudtaxibana längre ut, banan längst bort. Tvåfilig serviceväg längs terminalen med trafik åt båda hållen, under bryggorna. | Kimm efter v3: taxibanan låg för nära, bilen fick inte plats på vägen. |
+| 2026-10-23 | **Ägande = fri ombyggnad.** Det du äger kan du bygga om helt: flytta gates, dra om taxibanor, bygga banor och så vidare. Kap 1 plattan, kap 2 flygfältet (banor, taxibanor), kap 3 terminaler, kap 4 marken utanför. | Kimm: layouten ska vara spelarens beslut och kräva långsiktigt tänkande. |
+| 2026-10-23 | **Byggtid och mark**: ombyggnad stänger ytan några speldagar. Mark är begränsad och köps eller förhandlas från kommunen. | Ger långsiktig planering och undviker att man bygger om fritt hela tiden. |
+| 2026-10-23 | **Allt som finns på en riktig flygplats ska finnas**, förenklat där det behövs. | Kimm, fråga 5. |
+| 2026-10-23 | **Ingen game over.** Det blir tyngre och tyngre men aldrig hopplöst: nödlån, räddningsuppdrag från kommunen, möjlighet att sälja utrustning. | Kimm, fråga 3. Undvika återvändsgränder. |
+| 2026-10-23 | **Ton**: humor och glimt i ögat (namn, texter, små situationer), men seriöst i grunden och aldrig barnsligt. | Kimm, fråga 4. |
+| 2026-10-23 | **Spelaren är både flygplats och handlingbolag** i kapitel 1. | Kimm, fråga 1. |
+| 2026-10-23 | **En speldag ≈ 20 minuter** i normal fart. | Kimm, fråga 2. |
 | 2026-10-23 | Flygplatsen är **fiktiv**. Spelaren kan döpa den själv (t.ex. efter sin hemstad). | Frihet för spelaren, inga varumärkesproblem. |
 | 2026-10-23 | Spelet byggs i **samma ordning som det spelas**. Varje avdelning görs riktigt bra innan nästa påbörjas. | Undvika fem ytliga spel i stället för ett djupt. |
 | 2026-10-23 | Avdelningar som inte är upplåsta sköts av en **entreprenör som gör det halvbra**. Spelaren ser bristerna och vill ta över. | Ger naturlig motivation att låsa upp, i stället för en dyr knapp. |
@@ -87,7 +94,7 @@ Saker som byggs nu men måste hänga ihop med senare delar. Uppdatera när någo
 
 - **v0.1 (prototyp, klar)**: simulering av flyg, passagerarflöden, bagage, avtal, ekonomi och händelser, med enkel rutgrafik.
   Simuleringen är testad och behålls. Rutgrafiken ersätts.
-- **Pågår**: förslag till kapitel 1 i `docs/KAPITEL-1.md`, väntar på Kimms svar. Stilskiss v3 godkänd i stort (v1 och v2 sparade som `mockups/stilskiss-v1.html` och `-v2.html`) för tecknad 3D med golvläge (`mockups/stilskiss.html`,
+- **Pågår**: kapitel 1 godkänt (`docs/KAPITEL-1.md`). Bygger grunden (steg A). Stilskiss v3 godkänd i stort (v1 och v2 sparade som `mockups/stilskiss-v1.html` och `-v2.html`) för tecknad 3D med golvläge (`mockups/stilskiss.html`,
   https://kimmen1993.github.io/skyhub/mockups/stilskiss.html). Väntar på Kimms omdöme om stil och känsla.
   Skissen är ritad helt i kod. Den riktiga versionen kan använda gratis modellpaket (CC0) för rikare figurer och fordon.
 

@@ -1,6 +1,6 @@
 # Kapitel 1: Plattan (Airside)
 
-**Status: FÖRSLAG.** Inget här är bestämt förrän Kimm har sagt ja. Frågor att svara på finns sist.
+**Status: GODKÄNT 2026-10-23.** Detaljer kan ändras under bygget. Svaren på frågorna finns sist.
 
 ---
 
@@ -64,6 +64,8 @@ Rapporten visar också hur du ligger till med uppdragen.
 
 ## Det du kan bygga och köpa i kapitel 1
 
+**Du äger plattan och bestämmer layouten.** Du kan flytta och bygga om uppställningsplatser, taxilinjer, servicevägar och depåer. Ombyggnad tar några speldagar, och under tiden är ytan stängd. Plattan kan bara växa på mark du har köpt av kommunen.
+
 - **Uppställningsplatser:** kontakt (bara längs den befintliga terminalfasaden) och fjärr.
 - **Plattan:** utbyggd plattyta, taxilinjer och servicevägar.
 - **Garage och depåer för utrustning**, där placeringen påverkar körtiderna.
@@ -124,7 +126,15 @@ Sidouppdrag dyker upp längs vägen, till exempel VIP-besök, en flygbolagsdirek
 
 ---
 
-## Frågor till Kimm
+## Svar från Kimm (2026-10-23)
+
+1. Ja, du är både flygplats och handlingbolag.
+2. Ja, cirka 20 minuter per speldag.
+3. Mjukt: ingen game over, men tyngre och tyngre att återhämta sig. Det ska alltid finnas en väg tillbaka.
+4. Mer humor, men seriöst och aldrig barnsligt.
+5. Allt som finns på riktigt ska finnas, förenklat där det behövs.
+
+## Ursprungliga frågor
 
 1. **Marktjänsten:** ska du vara både flygplats och handlingbolag, alltså sköta lastning och bagage själv? *(Claudes förslag: ja, det blir roligare och enklare att förstå.)*
 2. **Speldagens längd:** är cirka 20 minuter per dag lagom?
