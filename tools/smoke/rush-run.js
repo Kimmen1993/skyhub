@@ -29,7 +29,7 @@ try {
         var on = R.units.filter(function (u) { return u.assign === f.id; });
         var wLeft = ['chocks', 'bridge', 'unload', 'load', 'chocksOff'].some(function (k) { return !R.done(f, k); });
         var wOn = on.filter(function (u) { return u.kind === 'worker'; }).length;
-        if (wLeft && wOn < 2) { W.filter(function (u) { return u.state === 'idle' && u.stamina >= 30; }).slice(0, 2 - wOn).forEach(function (u) { assign(u, f); }); }
+        if (wLeft && wOn < 2) { var two = W.filter(function (u) { return u.state === 'idle' && u.stamina >= 30; }).slice(0, 2 - wOn); if (two.length) { R.select(two); R.command({ flight: f }); } }
         ['train', 'fuel', 'tug'].forEach(function (kind) {
           var need = kind === 'train' ? !R.done(f, 'load') : kind === 'fuel' ? !R.done(f, 'fuel') : !R.done(f, 'push') && R.done(f, 'load');
           if (!need || on.some(function (u) { return u.kind === kind; })) return;
@@ -41,7 +41,7 @@ try {
     frame();
   }
   var S = R.S;
-  print('DAG ' + day + ': stars', S.stars, '/', S.maxStars, 'done', S.done, 'ontime', S.ontime, 'div', S.diverted, 'money', Math.round(S.money), 'fuel', S.fuel, 'built', JSON.stringify(S.built), 'stuck', S.flights.filter(function (f) { return ['stand', 'pushback', 'holding', 'taxiIn'].indexOf(f.phase) >= 0; }).map(function (f) { return f.code + ':' + f.phase; }).join(','));
+  print('DAG ' + day + ': coach', R.S.coach, 'stars', S.stars, '/', S.maxStars, 'done', S.done, 'ontime', S.ontime, 'div', S.diverted, 'money', Math.round(S.money), 'fuel', S.fuel, 'built', JSON.stringify(S.built), 'stuck', S.flights.filter(function (f) { return ['stand', 'pushback', 'holding', 'taxiIn'].indexOf(f.phase) >= 0; }).map(function (f) { return f.code + ':' + f.phase; }).join(','));
  }
  print(log.filter(function (l) { return /diverted|END/.test(l); }).join('\n'));
 } catch (e) { print('KRASCH: ' + e + '\n' + e.stack); }

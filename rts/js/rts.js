@@ -389,12 +389,15 @@
   ];
   function coachTick() {
     if (!S || S.coach < 0) return;
-    if (S.coach < COACH.length && COACH[S.coach].ok()) { S.coach++; Sfx.good(); coachRender(); }
-    if (S.coach >= COACH.length) { S.coach = -1; coachRender(); banner('Guiden är klar. Nu kör du själv!', 'good'); }
+    if (S.coach < COACH.length && COACH[S.coach].ok()) {
+      S.coach++; Sfx.good();
+      if (S.coach >= COACH.length) { S.coach = -1; banner('Guiden är klar. Nu kör du själv!', 'good'); }
+      coachRender();
+    }
   }
   function coachRender() {
     const el = $('coach'); if (!el) return;
-    if (!S || S.coach < 0) { el.hidden = true; return; }
+    if (!S || S.coach < 0 || !COACH[S.coach]) { el.hidden = true; return; }
     el.hidden = false; el.innerHTML = `<span class="st">Steg ${S.coach + 1} av ${COACH.length}</span><p>${COACH[S.coach].text}</p>`;
   }
 
