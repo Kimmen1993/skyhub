@@ -126,8 +126,22 @@ button { font: inherit; color: inherit; }
 .kv { display: grid; grid-template-columns: 1fr auto; gap: 5px 14px; font-weight: 700; }
 .kv b { font-family: var(--font-display); }
 
+#req { right: calc(10px + env(safe-area-inset-right, 0px)); top: calc(78px + env(safe-area-inset-top, 0px)); width: 300px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; background: #fff3c4; animation: bin 0.4s cubic-bezier(.2,1.6,.4,1); }
+#req b { font: 700 15px var(--font-display); }
+#req p { margin: 0; font-weight: 700; line-height: 1.4; font-size: 13px; }
+#req .rb { display: flex; gap: 6px; align-items: center; }
+#coach { left: 50%; top: calc(128px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); width: min(560px, calc(100% - 560px)); min-width: 300px; padding: 10px 14px; background: #e3f7ea; display: flex; flex-direction: column; gap: 4px; }
+#coach .st { font: 700 12px var(--font-display); color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+#coach p { margin: 0; font-weight: 700; line-height: 1.45; }
+.days { display: flex; flex-direction: column; gap: 8px; }
+.day { text-align: left; border: 2.5px solid var(--ink); border-radius: 12px; padding: 10px 12px; background: #fff; box-shadow: 0 3px 0 var(--ink); cursor: pointer; display: flex; flex-direction: column; gap: 2px; font: inherit; }
+.day:hover:not(:disabled) { background: #fff3c4; }
+.day b { font: 700 16px var(--font-display); }
+.day span { font-weight: 700; color: #3c4658; }
+.day small { font-weight: 800; color: var(--muted); }
+.day.lock { opacity: 0.55; cursor: default; box-shadow: none; }
 @media (prefers-reduced-motion: reduce) { .btn.r, .tag .c.n, #banner, #cel.show, #cel .stars span.on, .res.fuel.low b { animation: none; } }
-@media (max-width: 900px) { #fc { width: 200px; } #radio { display: none; } #selp { max-width: calc(100% - 24px); bottom: calc(60px + env(safe-area-inset-bottom, 0px)); } #banner { max-width: calc(100% - 24px); top: calc(120px + env(safe-area-inset-top, 0px)); } }
+@media (max-width: 900px) { #coach { width: calc(100% - 24px); top: auto; bottom: calc(130px + env(safe-area-inset-bottom, 0px)); } #req { top: auto; bottom: calc(130px + env(safe-area-inset-bottom, 0px)); } #fc { width: 200px; } #radio { display: none; } #selp { max-width: calc(100% - 24px); bottom: calc(60px + env(safe-area-inset-bottom, 0px)); } #banner { max-width: calc(100% - 24px); top: calc(120px + env(safe-area-inset-top, 0px)); } }
 @media (max-width: 620px) { #fc { display: none; } }
 </style>
 
@@ -143,6 +157,8 @@ button { font: inherit; color: inherit; }
 <div id="box" class="fx" hidden></div>
 <div id="tags"></div>
 <div id="cel" class="fx panel" hidden></div>
+<div id="req" class="fx panel" hidden></div>
+<div id="coach" class="fx panel" hidden></div>
 <div id="modal" hidden></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>

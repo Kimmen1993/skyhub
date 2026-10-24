@@ -4,9 +4,14 @@ function frame() { __now += 50; var f = __raf; __raf = null; f(__now); }
 var R = SH.Rush, log = [], last = {};
 function assign(u, f) { R.select([u]); R.command({ flight: f }); }
 try {
-  click({ act: 'begin' });
-  for (var i = 0; i < 20000; i++) {
-    var S = R.S; if (S.ended) { log.push('END ' + S.t.toFixed(0)); break; }
+ for (var day = 1; day <= 4; day++) {
+  R.newGame(day); R.S.started = true; document.getElementById('modal').hidden = true; R.G.modal = false; last = {};
+  var sabotaged = 0;
+  for (var i = 0; i < 30000; i++) {
+    var S = R.S; if (S.ended) { log.push('END dag ' + day + ' ' + S.t.toFixed(0)); break; }
+    if (S.req) R.answer(true);
+    // sabotage: flytta traktorn mitt i pushback och tåget med väskor till ett annat plan
+    if (sabotaged < 3) { var tg = R.units.find(function (u) { return u.kind === 'tug' && u.job === 'pushing'; }); if (tg) { R.select([tg]); R.command({ place: { x: 0, z: -20 } }); sabotaged++; } var tr = R.units.find(function (u) { return u.kind === 'train' && u.load; }); var other = S.flights.find(function (f) { return f.phase === 'stand' && tr && tr.load.indexOf(':' + f.id) < 0; }); if (tr && other) { R.select([tr]); R.command({ flight: other }); sabotaged++; } }
     S.flights.forEach(function (f) { if (last[f.id] !== f.phase) { last[f.id] = f.phase; if (['stand', 'taxiOut', 'diverted', 'holding'].indexOf(f.phase) >= 0) log.push(S.t.toFixed(0) + ' ' + f.code + ' ' + f.phase + '@' + f.stand + (f.stars ? ' ' + JSON.stringify(f.stars) : '')); } });
     if (i % 8 === 0) {
       if (!S.built.R1 && S.money >= 18000) R.build('R1');
@@ -35,7 +40,8 @@ try {
     }
     frame();
   }
-  print(log.join('\n'));
   var S = R.S;
-  print('stars', S.stars, '/', S.maxStars, 'done', S.done, 'ontime', S.ontime, 'div', S.diverted, 'money', Math.round(S.money), 'fuel', S.fuel, 'built', JSON.stringify(S.built));
+  print('DAG ' + day + ': stars', S.stars, '/', S.maxStars, 'done', S.done, 'ontime', S.ontime, 'div', S.diverted, 'money', Math.round(S.money), 'fuel', S.fuel, 'built', JSON.stringify(S.built), 'stuck', S.flights.filter(function (f) { return ['stand', 'pushback', 'holding', 'taxiIn'].indexOf(f.phase) >= 0; }).map(function (f) { return f.code + ':' + f.phase; }).join(','));
+ }
+ print(log.filter(function (l) { return /diverted|END/.test(l); }).join('\n'));
 } catch (e) { print('KRASCH: ' + e + '\n' + e.stack); }

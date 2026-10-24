@@ -113,7 +113,11 @@ Saker som byggs nu men måste hänga ihop med senare delar. Uppdatera när någo
 - **Rusningsprototypen (`rts/`)**: 06:00–09:15, 11 plan och en nödlandning, 4 arbetare, tankbil, bagagetåg, pushback,
   bränsle i depå som beställs, ork och rast, byggplatser (fjärrplats, bränsledepå, personalrum), köp av fler enheter,
   händelser med prognos, stjärnor och rekord. Testad med robot (`tools/run-rush-smoke.sh`): 28/33 stjärnor.
-- **Nästa**: Kimm testar rusningsprototypen.
+- **Rusning v2** efter Kimms test ("fungerar bättre", men svårt att förstå, låsningar, vill ha stigande svårighet och mer känsla av att styra):
+  fyra dagar som låses upp (≥50 % stjärnor), guide steg för steg på dag 1, förfrågningar på radion med ja/nej
+  (extra plan, billigt bränsle, lovad tidig avgång), automatisk reparation när arbetare skickas till plan med trasig
+  bandlastare, pushback och bagagetåg kan inte längre tas ifrån sitt jobb mitt i. Robot: 100/88/85/76 % stjärnor dag 1–4.
+- **Nästa**: Kimm testar v2. Känslan av att "styra och ställa" ska fortsätta byggas på (fler beslut med konsekvenser).
   Byggläget (flytta och bygga gates, taxilinjer, depåer) kommer efter det. (v1 och v2 sparade som `mockups/stilskiss-v1.html` och `-v2.html`) för tecknad 3D med golvläge (`mockups/stilskiss.html`,
   https://kimmen1993.github.io/skyhub/mockups/stilskiss.html). Väntar på Kimms omdöme om stil och känsla.
   Skissen är ritad helt i kod. Den riktiga versionen kan använda gratis modellpaket (CC0) för rikare figurer och fordon.
