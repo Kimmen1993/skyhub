@@ -130,7 +130,15 @@ Saker som byggs nu men måste hänga ihop med senare delar. Uppdatera när någo
   Dag 2/3/4 får 2/4/6 kort. Robotar: handstyrd 100/92/91 %, bara fasta lag 88/85/78 % (dag 2–4).
 - **Kimm har testat v4**: känns bra. Vill nu att det blir ett riktigt spel: grafik, proportioner, karriär, design,
   utbyggnader, service och slitage saknas.
-- **Nästa**: färdplan för det riktiga spelet (M1–M5) föreslagen, väntar på Kimms ja.
+- **Färdplan (Kimm: ja, 2026-10-24)**: M1 karriären, M2 grafik och proportioner, M3 plantyper och innehåll,
+  M4 utbyggnad på riktigt, M5 finish/mobil.
+- **M1 klar (första versionen)**: `rts/js/career.js`. Huvudmeny (fortsätt, ny karriär med namn, utmaningar), dagar som
+  genereras från avtal, kontoret mellan dagarna (rapport, avtal, personal med skicklighet/moral/utbildning/bonus, fordon
+  med slitage/service/köp/leasing, bandlastarnas slitage, bränsle, bygge med nivåkrav, spara/exportkod), rykte,
+  flygbolagens nöjdhet (missnöjda säger upp), befordran (ramparbetare → flygplatschef) som låser upp fasta lag och byggen,
+  slitage som ger haverier under dagen, vikarier under dagen. Ekonomi: avgifter växer med trafiken.
+  Robot 8 dagar: nivå 2, 105 000 kr, 36/36 stjärnor dag 8.
+- **Nästa**: Kimm testar karriären. Sedan M2 grafik och proportioner.
   Byggläget (flytta och bygga gates, taxilinjer, depåer) kommer efter det. (v1 och v2 sparade som `mockups/stilskiss-v1.html` och `-v2.html`) för tecknad 3D med golvläge (`mockups/stilskiss.html`,
   https://kimmen1993.github.io/skyhub/mockups/stilskiss.html). Väntar på Kimms omdöme om stil och känsla.
   Skissen är ritad helt i kod. Den riktiga versionen kan använda gratis modellpaket (CC0) för rikare figurer och fordon.
