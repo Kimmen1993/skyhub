@@ -14,6 +14,20 @@
   const dist2 = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
   const standById = (id) => L.stands.find((s) => s.id === id);
 
+  // ---------- felruta: visar fel i stället för att spelet bara stannar ----------
+  const errs = [];
+  function showError(msg, stack) {
+    const line = String(msg) + (stack ? '\n' + String(stack).split('\n').slice(0, 4).join('\n') : '');
+    if (errs.includes(line)) return; errs.push(line);
+    let el = document.getElementById('errbox');
+    if (!el) { el = document.createElement('div'); el.id = 'errbox'; el.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:99;max-width:min(560px,calc(100% - 24px));background:#ffe3dc;border:3px solid #1d2433;border-radius:14px;padding:10px 12px;font:700 13px Nunito,system-ui,sans-serif;color:#1d2433;box-shadow:0 4px 0 #1d2433;user-select:text;-webkit-user-select:text'; document.body.appendChild(el); }
+    el.innerHTML = '<b>Något gick fel. Spelet försöker fortsätta.</b><pre style="white-space:pre-wrap;font:11px ui-monospace,Menlo,monospace;margin:6px 0;max-height:160px;overflow:auto"></pre><button type="button" style="font:700 13px Fredoka,sans-serif;padding:5px 10px;border:2px solid #1d2433;border-radius:9px;background:#f2b134;cursor:pointer">Kopiera felet</button> <span></span>';
+    el.querySelector('pre').textContent = errs.join('\n\n') + '\n\n' + navigator.userAgent;
+    el.querySelector('button').onclick = () => { const t = el.querySelector('pre').textContent; try { navigator.clipboard.writeText(t).then(() => (el.querySelector('span').textContent = 'Kopierat!')); } catch (e) { el.querySelector('span').textContent = 'Markera texten och kopiera'; } };
+  }
+  addEventListener('error', (e) => showError(e.message, e.error && e.error.stack));
+  addEventListener('unhandledrejection', (e) => showError('Promise: ' + (e.reason && e.reason.message || e.reason), e.reason && e.reason.stack));
+
   // ---------- renderer ----------
   const canvas = $('c');
   const renderer = new T.WebGLRenderer({ canvas, antialias: true });
@@ -606,6 +620,10 @@
   // ---------- loop ----------
   let last = performance.now(), hudT = 0;
   function frame(now) {
+    try { frameBody(now); } catch (e) { showError(e.message, e.stack); }
+    requestAnimationFrame(frame);
+  }
+  function frameBody(now) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     const run = S.started && !G.paused && !G.modal && !S.ended;
     if (run) {
@@ -665,7 +683,6 @@
     tagsTick();
     hudT += dt; if (hudT > 0.2) { hudT = 0; hudTick(); renderReq(); }
     renderer.render(scene, camera);
-    requestAnimationFrame(frame);
   }
 
   document.addEventListener('click', (e) => {
@@ -685,7 +702,7 @@
   function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
   addEventListener('resize', resize); resize();
 
-  SH.Rush = { get S() { return S; }, units, G, command, select, build, buy, orderFuel, ready, done, newGame, answer };
+  SH.Rush = { _cam: camera, get S() { return S; }, units, G, command, select, build, buy, orderFuel, ready, done, newGame, answer };
   newGame(1);
   dayMenu();
   requestAnimationFrame(frame);

@@ -33,6 +33,8 @@
     g.gain.setValueAtTime(vol || 0.3, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     src.connect(f); f.connect(g); g.connect(master); src.start(t);
   }
+  // Ljud får aldrig krascha spelet: alla anrop körs inom try/catch.
+  const safe = (fn) => function () { try { return fn.apply(null, arguments); } catch (e) { if (window.console) console.warn('Ljudfel', e); } };
   SH.Sfx = {
     init,
     toggle() { muted = !muted; if (master) master.gain.value = muted ? 0 : 0.5; return !muted; },
@@ -49,6 +51,7 @@
     clunk() { noise(0, 0.18, 400, 0.4, 3); tone(140, 0, 0.12, 'square', 0.1, 90); },
     level() { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, i * 0.12, 0.4, 'triangle', 0.22)); },
     // nära plan → högre motorbrus
-    hum(level) { if (humGain && ctx) humGain.gain.setTargetAtTime(muted ? 0 : Math.min(0.5, level), ctx.currentTime, 0.2); },
+    hum: safe(function (level) { if (humGain && ctx) humGain.gain.setTargetAtTime(muted ? 0 : Math.min(0.5, level), ctx.currentTime, 0.2); }),
   };
+  ['init', 'click', 'ding', 'good', 'bad', 'thunk', 'honk', 'radio', 'stars', 'whoosh', 'clunk', 'level'].forEach((k) => (SH.Sfx[k] = safe(SH.Sfx[k])));
 })();
