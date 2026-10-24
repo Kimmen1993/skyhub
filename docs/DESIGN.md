@@ -122,7 +122,12 @@ Saker som byggs nu men måste hänga ihop med senare delar. Uppdatera när någo
   väder i nivåer (regn, kraftigt regn, åska med korta blixtlarm) i stället för att allt stannar.
 - **Kimms oro (2026-10-24):** risk för upprepning, "klicka gubbe, klicka plan, sen går det automatiskt". Saknar det
   oförutsedda. Proportioner och grafik behöver skärpas. Bygga är bara påbörjat.
-- **Nästa**: förslag om variation (rutiner som automatiserar det vanliga, händelsekort, olika plantyper, att hoppa in själv) väntar på Kimms svar.
+- **Beslut 2026-10-24 (Kimm: "låter som en bra plan")**: ordning för variation: 1) fasta lag/rutiner och händelsekort,
+  2) olika plantyper med olika behov, 3) hoppa in själv för bonus, sedan grafik/proportioner och bygget.
+- **Rusning v4**: fasta lag (gate eller Auto, 20 kr/min per enhet), slumpade händelsekort per körning (trasig
+  bandlastare, oljespill, rullstolsassistans, sjuk arbetare, anslutningsflyg att vänta in, fåglar på banan, punktering).
+  Dag 2/3/4 får 2/4/6 kort. Robotar: handstyrd 100/92/91 %, bara fasta lag 88/85/78 % (dag 2–4).
+- **Nästa**: Kimm testar v4. Därefter olika plantyper.
   Byggläget (flytta och bygga gates, taxilinjer, depåer) kommer efter det. (v1 och v2 sparade som `mockups/stilskiss-v1.html` och `-v2.html`) för tecknad 3D med golvläge (`mockups/stilskiss.html`,
   https://kimmen1993.github.io/skyhub/mockups/stilskiss.html). Väntar på Kimms omdöme om stil och känsla.
   Skissen är ritad helt i kod. Den riktiga versionen kan använda gratis modellpaket (CC0) för rikare figurer och fordon.
