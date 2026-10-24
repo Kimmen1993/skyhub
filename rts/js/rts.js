@@ -634,7 +634,11 @@
       eventTick(); coachTick();
       S.flights.forEach((f) => flightTick(f, dt));
       units.forEach((u) => unitTick(u, dt));
-      if (S.t >= S.end && !S.flights.some((f) => ['sched', 'holding', 'approach', 'rollout', 'taxiIn', 'stand', 'pushback'].includes(f.phase))) endScreen();
+      // dagen är slut när alla plan är iväg och inga överraskningar återstår (eller när klockan passerat sluttiden)
+      const active = S.flights.some((f) => ['sched', 'holding', 'approach', 'rollout', 'taxiIn', 'stand', 'pushback'].includes(f.phase));
+      const pending = S.events.some((e) => !e.fired && e.type === 'emergency') || S.requests.some((q) => !q.fired && q.type === 'extra') || S.req;
+      const airborne = S.flights.some((f) => ['taxiOut', 'hold'].includes(f.phase) || (f.phase === 'takeoff' && f.y < 20));
+      if (!active && !airborne && (!pending || S.t >= S.end)) { S.endWait = (S.endWait || 0) + dt; if (S.endWait > 1.5) endScreen(); }
     }
     // kamera-panorering med tangenter
     const pan = cam.dist * 0.9 * dt, fx = Math.sin(cam.yaw), fz = Math.cos(cam.yaw), rx = -Math.cos(cam.yaw), rz = Math.sin(cam.yaw);
