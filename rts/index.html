@@ -60,7 +60,16 @@ button { font: inherit; color: inherit; }
 .in b { font: 700 13px var(--font-display); }
 .in em { font-style: normal; color: #fff; background: var(--violet); border-radius: 5px; padding: 0 4px; }
 .wx { position: relative; height: 26px; border: 2px solid var(--ink); border-radius: 8px; background: linear-gradient(#bfe6fb, #e7f6fe); overflow: hidden; }
-.wx .storm { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(135deg, #3c4a63 0 6px, #56657d 6px 12px); }
+.wx i { position: absolute; top: 0; bottom: 0; }
+.wx .wx1 { background: #8fb5d6; } .wx .wx2 { background: #5d7896; } .wx .wx3 { background: repeating-linear-gradient(135deg, #3c4a63 0 6px, #f2b134 6px 9px, #3c4a63 9px 14px); }
+#roster { left: calc(10px + env(safe-area-inset-left, 0px)); bottom: calc(10px + env(safe-area-inset-bottom, 0px)); width: 250px; padding: 6px; display: flex; flex-direction: column; gap: 3px; max-height: 40%; overflow-y: auto; }
+.ro { display: grid; grid-template-columns: 10px 1fr 46px 34px; gap: 6px; align-items: center; border: 2px solid transparent; border-radius: 8px; background: none; padding: 2px 5px; cursor: pointer; text-align: left; font: inherit; }
+.ro:hover { background: #fff3c4; } .ro.on { border-color: var(--ink); background: #d9f4f1; }
+.ro i { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--ink); }
+.ro b { font: 700 12.5px var(--font-display); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ro small { font-size: 10.5px; font-weight: 800; color: var(--muted); text-align: right; }
+.ro .mini { height: 6px; border-radius: 3px; border: 1.5px solid var(--ink); background: #ece6d8; overflow: hidden; }
+.ro .mini s { display: block; height: 100%; }
 .wx .lbl { position: absolute; bottom: 1px; font: 700 10px var(--font-display); padding: 0 4px; }
 
 #selp { left: 50%; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); padding: 8px; display: flex; gap: 6px; align-items: stretch; flex-wrap: wrap; max-width: calc(100% - 340px); justify-content: center; }
@@ -80,7 +89,7 @@ button { font: inherit; color: inherit; }
 .it b { font: 700 13px var(--font-display); }
 .it small { font-size: 11px; font-weight: 700; color: var(--muted); }
 
-#radio { left: calc(10px + env(safe-area-inset-left, 0px)); bottom: calc(10px + env(safe-area-inset-bottom, 0px)); padding: 7px 12px; font-weight: 800; font-size: 12.5px; max-width: 300px; transition: opacity 0.6s; }
+#radio { left: calc(270px + env(safe-area-inset-left, 0px)); bottom: calc(10px + env(safe-area-inset-bottom, 0px)); padding: 7px 12px; font-weight: 800; font-size: 12.5px; max-width: 300px; transition: opacity 0.6s; }
 #radio em { font-style: normal; color: #3f6fd8; }
 #radio.fade { opacity: 0.35; }
 #banner { left: 50%; top: calc(76px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); padding: 8px 16px; font: 700 16px var(--font-display); max-width: calc(100% - 560px); text-align: center; animation: bin 0.35s cubic-bezier(.2,1.6,.4,1); }
@@ -142,13 +151,14 @@ button { font: inherit; color: inherit; }
 .day.lock { opacity: 0.55; cursor: default; box-shadow: none; }
 @media (prefers-reduced-motion: reduce) { .btn.r, .tag .c.n, #banner, #cel.show, #cel .stars span.on, .res.fuel.low b { animation: none; } }
 @media (max-width: 900px) { #coach { width: calc(100% - 24px); top: auto; bottom: calc(130px + env(safe-area-inset-bottom, 0px)); } #req { top: auto; bottom: calc(130px + env(safe-area-inset-bottom, 0px)); } #fc { width: 200px; } #radio { display: none; } #selp { max-width: calc(100% - 24px); bottom: calc(60px + env(safe-area-inset-bottom, 0px)); } #banner { max-width: calc(100% - 24px); top: calc(120px + env(safe-area-inset-top, 0px)); } }
-@media (max-width: 620px) { #fc { display: none; } }
+@media (max-width: 620px) { #fc { display: none; } #roster { width: 180px; max-height: 30%; } }
 </style>
 
 <canvas id="c" aria-label="Plattan"></canvas>
 <div id="top" class="fx panel"></div>
 <div id="fc" class="fx panel"></div>
 <div id="selp" class="fx panel" hidden></div>
+<div id="roster" class="fx panel" aria-label="Alla enheter"></div>
 <div id="side" class="fx"><button type="button" class="btn y" data-act="panel">Bygg och köp (B)</button><button type="button" class="btn" data-act="pause">Paus</button><button type="button" class="btn" data-act="mute">Ljud på</button></div>
 <div id="buildp" class="fx panel" hidden></div>
 <div id="radio" class="fx panel" hidden></div>

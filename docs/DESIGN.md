@@ -117,7 +117,12 @@ Saker som byggs nu men måste hänga ihop med senare delar. Uppdatera när någo
   fyra dagar som låses upp (≥50 % stjärnor), guide steg för steg på dag 1, förfrågningar på radion med ja/nej
   (extra plan, billigt bränsle, lovad tidig avgång), automatisk reparation när arbetare skickas till plan med trasig
   bandlastare, pushback och bagagetåg kan inte längre tas ifrån sitt jobb mitt i. Robot: 100/88/85/76 % stjärnor dag 1–4.
-- **Nästa**: Kimm testar v2. Känslan av att "styra och ställa" ska fortsätta byggas på (fler beslut med konsekvenser).
+- **Rusning v3** efter Kimms test av alla dagar ("helt ok, vi närmar oss ett bra spel"): enhetslista för att välja
+  enskilda enheter, klick i en hög väljer nästa, utspridda väntplatser, plan får landa när gaten håller på att bli ledig,
+  väder i nivåer (regn, kraftigt regn, åska med korta blixtlarm) i stället för att allt stannar.
+- **Kimms oro (2026-10-24):** risk för upprepning, "klicka gubbe, klicka plan, sen går det automatiskt". Saknar det
+  oförutsedda. Proportioner och grafik behöver skärpas. Bygga är bara påbörjat.
+- **Nästa**: förslag om variation (rutiner som automatiserar det vanliga, händelsekort, olika plantyper, att hoppa in själv) väntar på Kimms svar.
   Byggläget (flytta och bygga gates, taxilinjer, depåer) kommer efter det. (v1 och v2 sparade som `mockups/stilskiss-v1.html` och `-v2.html`) för tecknad 3D med golvläge (`mockups/stilskiss.html`,
   https://kimmen1993.github.io/skyhub/mockups/stilskiss.html). Väntar på Kimms omdöme om stil och känsla.
   Skissen är ritad helt i kod. Den riktiga versionen kan använda gratis modellpaket (CC0) för rikare figurer och fordon.
