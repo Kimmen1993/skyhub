@@ -10,6 +10,7 @@
   const fmt = (t) => String(Math.floor(t / 60) % 24).padStart(2, '0') + ':' + String(Math.floor(t % 60)).padStart(2, '0');
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+  const setH = (el, html) => { if (el && el._h !== html) { el.innerHTML = html; el._h = html; } };
   const hex = (c) => '#' + c.toString(16).padStart(6, '0');
   const dist2 = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
   const standById = (id) => L.stands.find((s) => s.id === id);
@@ -86,7 +87,10 @@
     scene.add(g);
     const ring = new T.Mesh(new T.RingGeometry(kind === 'worker' ? 1.1 : 2.6, kind === 'worker' ? 1.5 : 3.1, 28), new T.MeshBasicMaterial({ color: 0x6fd39b, side: T.DoubleSide, transparent: true, opacity: 0.95 }));
     ring.rotation.x = -Math.PI / 2; scene.add(ring);
-    const u = { id: units.length + 1, kind, name: name || ({ fuel: 'Tankbil', train: 'Bagagetåg', tug: 'Pushback', ops: 'Follow me-bil' })[kind], x, z, h: Math.PI, g, ring, sel: false, assign: null, job: null, path: null, state: 'idle', stamina: 100, fuel: kind === 'fuel' ? D.truckCap : 0, load: null, carry: null, idleT: 0,
+    // nål ovanför enheten som syns genom plan och byggnader, så ingen kan gömma sig
+    const pin = new T.Mesh(new T.ConeGeometry(0.75, 1.5, 12), new T.MeshBasicMaterial({ color: 0x6fd39b, depthTest: false, transparent: true, opacity: 0.9 }));
+    pin.rotation.x = Math.PI; pin.renderOrder = 20; scene.add(pin);
+    const u = { id: units.length + 1, kind, name: name || ({ fuel: 'Tankbil', train: 'Bagagetåg', tug: 'Pushback', ops: 'Follow me-bil' })[kind], x, z, h: Math.PI, g, ring, pin, sel: false, assign: null, job: null, path: null, state: 'idle', stamina: 100, fuel: kind === 'fuel' ? D.truckCap : 0, load: null, carry: null, idleT: 0,
       rid: o.rid, skillF: o.skill ? 0.8 + o.skill * 0.1 : 1, wear: o.wear || 0, temp: !!o.temp, home: o.home || null };
     if (kind === 'train') { g.userData.carts.forEach((c) => (c.visible = true)); }
     units.push(u); return u;
@@ -94,7 +98,7 @@
   const city = (al, i) => { const l = D.cities[al] || D.cities.XX; return l[i % l.length]; };
   function newGame(dayId) {
     const day = typeof dayId === 'object' ? dayId : (D.days.find((d) => d.id === dayId) || D.days[0]);
-    units.forEach((u) => { scene.remove(u.g); scene.remove(u.ring); }); units.length = 0;
+    units.forEach((u) => { scene.remove(u.g); scene.remove(u.ring); scene.remove(u.pin); }); units.length = 0;
     for (const [, a] of planes) scene.remove(a.g); planes.clear();
     S = { day, t: hm(day.start), end: hm(day.end), money: day.money, fuel: day.fuel, orders: [], built: {}, flights: [], events: day.events.map((e) => Object.assign({}, e, { fired: false })), storm: null,
       requests: day.requests.map((q) => Object.assign({}, q, { fired: false })), req: null, coach: day.tutorial ? 0 : -1, coachDoneAt: null,
@@ -567,7 +571,7 @@
     if (!S || !S.req) { el.hidden = true; return; }
     el.hidden = false;
     const left = Math.max(0, Math.ceil(S.req.expires - S.t));
-    el.innerHTML = `<b>${esc(S.req.who)} på radion</b><p>${esc(S.req.text)}</p><div class="rb"><button type="button" class="btn y" data-req="yes">Ja</button><button type="button" class="btn" data-req="no">Nej</button><span class="note">${left} min att bestämma</span></div>`;
+    setH(el, `<b>${esc(S.req.who)} på radion</b><p>${esc(S.req.text)}</p><div class="rb"><button type="button" class="btn y" data-req="yes">Ja</button><button type="button" class="btn" data-req="no">Nej</button><span class="note">${left} min att bestämma</span></div>`);
   }
 
   // ---------- guide (dag 1) ----------
@@ -742,31 +746,31 @@
   const STATE = { idle: 'Sysslolös', move: 'På väg', busy: 'Jobbar', work: 'Jobbar', rest: 'Vilar', refuel: 'Tankar i depån', fetch: 'Hämtar reservdel', fetch2: 'Hämtar reservdel', standby: 'Väntar (fast lag)', sick: 'Sjuk', broken: 'Trasig' };
   function hudTick() {
     const idle = units.filter((u) => u.state === 'idle').length;
-    $('top').innerHTML = `<div class="res"><b>${esc(S.day.name.split(' · ')[0])}</b><small>${esc(S.day.name.split(' · ')[1] || '')}</small></div><div class="clock num"><span>${fmt(S.t).slice(0, 2)}</span>:<span>${fmt(S.t).slice(3)}</span></div>
+    setH($('top'), `<div class="res"><b>${esc(S.day.name.split(' · ')[0])}</b><small>${esc(S.day.name.split(' · ')[1] || '')}</small></div><div class="clock num"><span>${fmt(S.t).slice(0, 2)}</span>:<span>${fmt(S.t).slice(3)}</span></div>
       <div class="res"><b class="num">${kr(S.money)}</b><small>Kassa</small></div>
       <div class="res fuel ${S.fuel <= 2 ? 'low' : ''}"><b class="num">⛽ ${S.fuel}</b><small>Bränsle i depå</small></div>
       <button type="button" class="btn ${S.fuel <= 3 && !S.orders.length ? 'y' : ''}" data-act="order" ${S.orders.length || S.money < D.fuelOrder.cost ? 'disabled' : ''}>${S.orders.length ? `Leverans ${fmt(S.orders[0].at)}` : `Beställ bränsle +${D.fuelOrder.units} · 6 000 kr`}</button>
       <button type="button" class="btn ${idle ? 'r' : ''}" data-act="idle">Sysslolösa: ${idle}</button>
       <button type="button" class="btn ${G.fast ? 'y' : ''}" data-act="fast" title="Snabbspola (F)">${G.fast ? '2× på' : '2×'}</button>
-      <div class="res"><b class="num">${'★'.repeat(Math.min(5, Math.round(S.maxStars ? S.stars / S.maxStars * 5 : 0)))}<span style="opacity:.25">${'★'.repeat(5 - Math.min(5, Math.round(S.maxStars ? S.stars / S.maxStars * 5 : 0)))}</span></b><small>${S.stars} / ${S.maxStars} stjärnor</small></div>`;
+      <div class="res"><b class="num">${'★'.repeat(Math.min(5, Math.round(S.maxStars ? S.stars / S.maxStars * 5 : 0)))}<span style="opacity:.25">${'★'.repeat(5 - Math.min(5, Math.round(S.maxStars ? S.stars / S.maxStars * 5 : 0)))}</span></b><small>${S.stars} / ${S.maxStars} stjärnor</small></div>`);
     // prognos
     const t = S.t, inbound = S.flights.filter((f) => ['sched', 'holding', 'approach', 'rollout', 'taxiIn'].includes(f.phase)).sort((a, b) => a.sta - b.sta).slice(0, 6);
     const W0 = t, W1 = t + 45, X2 = (v) => clamp((v - W0) / (W1 - W0) * 100, 0, 100);
     const storm = (S.wx || []).filter((w) => w.to > W0 && w.from < W1).map((w) => `<i class="wx${w.lvl}" title="${WX.name[w.lvl]}" style="left:${X2(w.from)}%;width:${Math.max(2, X2(w.to) - X2(w.from))}%"></i>`).join('');
-    $('fc').innerHTML = `<h3>Inkommande</h3>${inbound.map((f) => {
+    setH($('fc'), `<h3>Inkommande</h3>${inbound.map((f) => {
       const eta = Math.round(f.sta - t), al = D.airlines[f.al];
       const st = f.phase === 'holding' ? '<span class="pill bad">Väntar i luften</span>' : f.phase === 'sched' ? `<span class="pill">${eta > 0 ? eta + ' min' : 'nu'}</span>` : `<span class="pill ok">${f.stand}</span>`;
       return `<div class="in"><i class="sw" style="background:${hex(al.color)}"></i><b>${esc(f.code)}</b><span>${D.aircraft[f.size].model}${f.cargo ? ' · frakt' : ''}${f.vip ? ' · <em>VIP</em>' : ''}${f.emergency ? ' · <em>NÖD</em>' : ''}${f.amb ? ' · <em>AMBULANS</em>' : ''}</span>${st}</div>`;
     }).join('') || '<span class="note">Inga fler i dag.</span>'}
-      <h3>Väder 45 min</h3><div class="wx">${storm}<span class="lbl" style="left:0">${fmt(W0)}</span><span class="lbl" style="right:0">${fmt(W1)}</span></div>`;
+      <h3>Väder 45 min</h3><div class="wx">${storm}<span class="lbl" style="left:0">${fmt(W0)}</span><span class="lbl" style="right:0">${fmt(W1)}</span></div>`);
     // markerade
     const us = sel();
     $('selp').hidden = !us.length;
-    if (us.length) $('selp').innerHTML = us.slice(0, 8).map((u) => {
+    if (us.length) setH($('selp'), us.slice(0, 8).map((u) => {
       const f = u.assign && S.flights.find((x) => x.id === u.assign);
       return `<div class="u"><b>${esc(u.kind === 'worker' ? u.name : KIND[u.kind])}</b><small>${STATE[u.state] || u.state}${f ? ' · ' + esc(f.code) : ''}${u.carry ? ' · bär reservdel' : ''}</small>${u.kind === 'worker' ? `<span class="bar"><i style="width:${Math.round(u.stamina)}%;background:${u.stamina < 25 ? 'var(--coral)' : u.stamina < 55 ? 'var(--sun)' : 'var(--mint)'}"></i></span>` : u.kind === 'fuel' ? `<span class="bar"><i style="width:${u.fuel / D.truckCap * 100}%;background:#e8634a"></i></span>` : ''}</div>`;
-    }).join('') + (S.cfg.noRoutines ? '<div class="routine"><small>Fasta lag låses upp när du blir arbetsledare.</small></div>' : `<div class="routine"><span>Fast lag:</span>${standsAvail().map((st) => `<button type="button" class="btn ${us.every((u) => u.home === st.id) ? 'y' : ''}" data-home="${st.id}">${st.id}</button>`).join('')}<button type="button" class="btn ${us.every((u) => u.home === 'auto') ? 'y' : ''}" data-home="auto" title="Hjälper till där det behövs mest">Auto</button><button type="button" class="btn" data-home="none">Ingen</button><small>${D.routineCost} kr/min per enhet</small></div>`) + `<div class="hint">${us.some((u) => u.kind === 'worker') ? 'Högerklicka ett plan: jobba där · trasigt fordon: laga · rast-ringen: vila · oljespill eller fågelringen: gå dit' : us.some((u) => u.kind === 'fuel') ? 'Högerklicka ett plan: tanka det · bränsledepån: fyll på' : 'Högerklicka ett plan för att jobba där'}</div>`;
-    $('roster').innerHTML = units.map((u, i) => { const f = u.assign && S.flights.find((x) => x.id === u.assign); const col = u.state === 'idle' ? 'var(--sun)' : u.state === 'rest' || u.state === 'standby' ? 'var(--teal)' : u.state === 'sick' || u.state === 'broken' ? 'var(--coral)' : 'var(--mint)'; return `<button type="button" class="ro ${u.sel ? 'on' : ''}" data-unit="${u.id}" title="${esc(u.kind === 'worker' ? u.name : KIND[u.kind])}: ${STATE[u.state] || u.state}${f ? ' vid ' + esc(f.code) : ''} (tangent ${i + 1})"><i style="background:${col}"></i><b>${esc(u.kind === 'worker' ? u.name : KIND[u.kind])}</b>${u.kind === 'worker' ? `<span class="mini"><s style="width:${Math.round(u.stamina)}%;background:${u.stamina < 25 ? 'var(--coral)' : 'var(--mint)'}"></s></span>` : ''}<small>${f ? esc(f.stand || '') : u.state === 'idle' ? 'ledig' : u.state === 'rest' ? 'vilar' : u.state === 'sick' ? 'sjuk' : u.state === 'broken' ? 'trasig' : u.home ? '⌂' + (u.home === 'auto' ? 'auto' : u.home) : ''}</small></button>`; }).join('');
+    }).join('') + (S.cfg.noRoutines ? '<div class="routine"><small>Fasta lag låses upp när du blir arbetsledare.</small></div>' : `<div class="routine"><span>Fast lag:</span>${standsAvail().map((st) => `<button type="button" class="btn ${us.every((u) => u.home === st.id) ? 'y' : ''}" data-home="${st.id}">${st.id}</button>`).join('')}<button type="button" class="btn ${us.every((u) => u.home === 'auto') ? 'y' : ''}" data-home="auto" title="Hjälper till där det behövs mest">Auto</button><button type="button" class="btn" data-home="none">Ingen</button><small>${D.routineCost} kr/min per enhet</small></div>`) + `<div class="hint">${us.some((u) => u.kind === 'worker') ? 'Högerklicka ett plan: jobba där · trasigt fordon: laga · rast-ringen: vila · oljespill eller fågelringen: gå dit' : us.some((u) => u.kind === 'fuel') ? 'Högerklicka ett plan: tanka det · bränsledepån: fyll på' : 'Högerklicka ett plan för att jobba där'}</div>`);
+    setH($('roster'), units.map((u, i) => { const f = u.assign && S.flights.find((x) => x.id === u.assign); const col = u.state === 'idle' ? 'var(--sun)' : u.state === 'rest' || u.state === 'standby' ? 'var(--teal)' : u.state === 'sick' || u.state === 'broken' ? 'var(--coral)' : 'var(--mint)'; return `<button type="button" class="ro ${u.sel ? 'on' : ''}" data-unit="${u.id}" title="${esc(u.kind === 'worker' ? u.name : KIND[u.kind])}: ${STATE[u.state] || u.state}${f ? ' vid ' + esc(f.code) : ''} (tangent ${i + 1})"><i style="background:${col}"></i><b>${esc(u.kind === 'worker' ? u.name : KIND[u.kind])}</b>${u.kind === 'worker' ? `<span class="mini"><s style="width:${Math.round(u.stamina / 10) * 10}%;background:${u.stamina < 25 ? 'var(--coral)' : 'var(--mint)'}"></s></span>` : ''}<small>${f ? esc(f.stand || '') : u.state === 'idle' ? 'ledig' : u.state === 'rest' ? 'vilar' : u.state === 'sick' ? 'sjuk' : u.state === 'broken' ? 'trasig' : u.home ? '⌂' + (u.home === 'auto' ? 'auto' : u.home) : ''}</small></button>`; }).join(''));
     const r = S.radio[S.radio.length - 1];
     if (r) { $('radio').hidden = false; $('radio').innerHTML = `<em>${esc(r.who)}:</em> ${esc(r.msg)}`; $('radio').classList.toggle('fade', performance.now() - r.at > 9000); }
     const b = S.banner; $('banner').hidden = !b || performance.now() - b.at > 4500; if (b) { $('banner').textContent = b.txt; $('banner').className = 'fx panel ' + b.kind; }
@@ -816,7 +820,7 @@
   function todoTick() {
     const list = incidents();
     $('todo').hidden = !list.length;
-    $('todo').innerHTML = `<h3>Att göra</h3>` + list.map((i) => `<div class="td"><span class="ic">${i.icon}</span><div><b ${i.x != null ? `data-look="${i.x}:${i.z}"` : ''}>${esc(i.title)}</b><small>${esc(i.need)}</small></div>${i.act ? (i.btn ? `<button type="button" class="btn y" data-inc="${i.act}">${i.btn}</button>` : '<span class="pill ok">På gång</span>') : ''}</div>`).join('');
+    setH($('todo'), `<h3>Att göra</h3>` + list.map((i) => `<div class="td"><span class="ic">${i.icon}</span><div><b ${i.x != null ? `data-look="${i.x}:${i.z}"` : ''}>${esc(i.title)}</b><small>${esc(i.need)}</small></div>${i.act ? (i.btn ? `<button type="button" class="btn y" data-inc="${i.act}">${i.btn}</button>` : '<span class="pill ok">På gång</span>') : ''}</div>`).join(''));
     // markeringar i världen
     const seen = new Set();
     list.filter((i) => i.x != null).forEach((i) => {
@@ -981,6 +985,9 @@
       u.ring.visible = u.sel || idle;
       u.ring.material.color.set(u.sel ? 0x6fd39b : 0xf2b134);
       u.ring.material.opacity = u.sel ? 0.95 : 0.45 + Math.sin(now / 180) * 0.35;
+      const ps = clamp(cam.dist / 110, 0.55, 1.8) * (u.sel ? 1.5 : 1);
+      u.pin.scale.setScalar(ps); u.pin.position.set(u.x, (u.kind === 'worker' ? 4.6 : 6) + ps * 0.8 + (u.sel ? Math.sin(now / 200) * 0.4 : 0), u.z);
+      u.pin.material.color.set(u.state === 'idle' ? 0xf2b134 : u.state === 'rest' || u.state === 'standby' ? 0x2bb3a6 : u.state === 'sick' || u.state === 'broken' ? 0xe8634a : u.sel ? 0xffffff : 0x6fd39b);
     });
     for (let i = pings.length - 1; i >= 0; i--) { const p = pings[i]; p.life -= dt; p.m.scale.setScalar(1 + (0.6 - p.life) * 5); p.m.material.opacity = Math.max(0, p.life / 0.6); if (p.life <= 0) { scene.remove(p.m); pings.splice(i, 1); } }
     restMark.material.color.set(units.some((u) => u.sel && u.kind === 'worker') ? 0x6fd39b : 0x9bd8b5);
@@ -997,12 +1004,22 @@
     renderer.render(scene, camera);
   }
 
-  document.addEventListener('click', (e) => {
+  // Panelerna ritas om flera gånger i sekunden. Ett vanligt klick (ned + upp på samma element) kan då tappas,
+  // så knappar i dem reagerar redan när musknappen trycks ned.
+  const LIVE = '#top,#fc,#selp,#roster,#todo,#req';
+  let downT = 0;
+  document.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || !e.target.closest) return;
+    const b = e.target.closest('button,[data-look]'); if (!b || b.disabled || !b.closest(LIVE)) return;
+    downT = performance.now(); onUi(e);
+  });
+  document.addEventListener('click', (e) => { if (performance.now() - downT < 1200 && e.target.closest && e.target.closest(LIVE)) return; onUi(e); });
+  function onUi(e) {
     const lk = e.target.closest && e.target.closest('[data-look]'); if (lk && lk.dataset && lk.dataset.look) { const [x, z] = lk.dataset.look.split(':').map(Number); cam.x = x; cam.z = z; return; }
     const b = e.target.closest('button'); if (!b) return; const d = b.dataset; Sfx.init();
     if (d.inc) { quick(d.inc); return; }
     if (d.home) { sel().forEach((u) => { if (d.home === 'none') u.home = null; else u.home = d.home; if (u.state === 'idle' && u.home) u.state = 'standby'; if (!u.home && u.state === 'standby') u.state = 'idle'; }); Sfx.good(); hudTick(); return; }
-    if (d.unit) { const u = units.find((x) => x.id === +d.unit); if (u) { const now2 = performance.now(); if (G.lastUnitClick === u.id && now2 - G.lastUnitT < 380) { cam.x = u.x; cam.z = u.z; } G.lastUnitClick = u.id; G.lastUnitT = now2; select([u], e.shiftKey); panel(); hudTick(); } return; }
+    if (d.unit) { const u = units.find((x) => x.id === +d.unit); if (u) { const now2 = performance.now(); if (G.lastUnitClick === u.id && now2 - G.lastUnitT < 380) { cam.x = u.x; cam.z = u.z; } G.lastUnitClick = u.id; G.lastUnitT = now2; if (e.shiftKey && u.sel) u.sel = false; else select([u], e.shiftKey); panel(); hudTick(); } return; }
     if (d.day) { closeModal(); newGame(+d.day); S.started = true; Sfx.ding(); radio('TORNET', `God morgon! ${S.day.name.split('· ')[1]} börjar. Första planet är på väg.`); }
     else if (d.act === 'days') dayMenu();
     else if (d.act === 'temp') hireTemp();
@@ -1017,7 +1034,7 @@
     else if (d.act === 'mute') { Sfx.toggle(); b.textContent = Sfx.muted ? 'Ljud av' : 'Ljud på'; }
     else if (d.build) build(d.build);
     else if (d.buy) buy(d.buy);
-  });
+  }
   function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
   addEventListener('resize', resize); resize();
 

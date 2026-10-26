@@ -141,7 +141,9 @@
     const nOff = Math.min(3 - C.offers.length, 1 + (C.rep > 50 ? 1 : 0) + (C.level >= 2 ? 1 : 0));
     for (let i = 0; i < nOff; i++) {
       const pool = Object.entries(AIRLINES).filter(([k, a]) => C.rep >= a.rep && C.level >= a.lvl);
-      const [al, a] = pick(pool);
+      // bolag du aldrig haft hör av sig först, så nya plantyper faktiskt dyker upp
+      const fresh = pool.filter(([k]) => !C.contracts.some((c) => c.al === k) && !C.offers.some((o) => o.al === k));
+      const [al, a] = pick(i === 0 && fresh.length ? fresh : pool);
       C.offers.push({ id: nid(), al, size: a.size, cargo: !!a.cargo, trait: a.trait || null, perDay: Math.random() < 0.3 + C.level * 0.1 ? 2 : 1, pay: Math.round(a.base * rnd(0.9, 1.15) / 100) * 100, until: C.day + 3 });
     }
     candidates();
