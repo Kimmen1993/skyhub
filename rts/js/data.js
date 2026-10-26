@@ -8,6 +8,8 @@
     aircraft: {
       S: { id: 'S', model: 'ATR 72', seats: 70, scale: 0.8, nose: 9.0, len: 19, span: 22, turn: 30, bags: 6, fuel: 1 },
       M: { id: 'M', model: 'A320', seats: 180, scale: 1.15, nose: 12.95, len: 27.6, span: 31, turn: 32, bags: 10, fuel: 2 },
+      L: { id: 'L', model: 'A350', seats: 300, scale: 1.32, nose: 14.9, len: 31.7, span: 36, turn: 44, bags: 16, fuel: 4 },
+      J: { id: 'J', model: 'Privatjet', seats: 8, scale: 0.58, nose: 6.5, len: 13.9, span: 16, turn: 18, bags: 2, fuel: 1 },
     },
     airlines: {
       FJ: { name: 'Fjällflyg', color: 0x2bb3a6, accent: 0xffffff },
@@ -15,8 +17,14 @@
       SC: { name: 'Sol Charter', color: 0xe8634a, accent: 0xffffff },
       BB: { name: 'Baltic Blue', color: 0x27a3c9, accent: 0xf2b134 },
       XX: { name: 'Nödlandning', color: 0x8b5cf6, accent: 0xffffff },
+      AU: { name: 'Aurora Air', color: 0x8b5cf6, accent: 0xf2b134 },
+      CG: { name: 'NordCargo', color: 0x8a5a3c, accent: 0xf2b134 },
+      VX: { name: 'Vingklipp Executive', color: 0x1d2433, accent: 0xf2b134 },
+      AM: { name: 'Ambulansflyget', color: 0xe8634a, accent: 0xffffff },
+      LC: { name: 'Snålflyg', color: 0xf2b134, accent: 0x1d2433 },
+      LX: { name: 'Nordic Royal', color: 0x1f3b73, accent: 0xd9a441 },
     },
-    callsign: { FJ: 'Fjällflyg', NV: 'Nordvind', SC: 'Sol Charter', BB: 'Baltic', XX: 'Mayday' },
+    callsign: { FJ: 'Fjällflyg', NV: 'Nordvind', SC: 'Sol Charter', BB: 'Baltic', XX: 'Mayday', AU: 'Aurora', CG: 'Nordcargo', VX: 'Vingklipp', AM: 'Lifeguard', LC: 'Snålis', LX: 'Royal' },
     // Dagar som låses upp i tur och ordning. Varje dag är en egen bana.
     days: [
       { id: 1, name: 'Dag 1 · Första passet', desc: 'Tre lugna plan och en guide som visar hur allt fungerar.', start: '06:00', end: '07:45', money: 15000, fuel: 6, workers: 3, tutorial: true,
@@ -33,7 +41,7 @@
         events: [{ at: 64, type: 'storm', dur: 10 }, { at: 88, type: 'emergency', size: 'M' }, { at: 150, type: 'storm', dur: 7 }], cards: 6,
         requests: [{ at: 20, type: 'fuelDeal' }, { at: 44, type: 'priority' }, { at: 76, type: 'extra', al: 'BB', size: 'M', inMin: 24, pay: 14000 }, { at: 120, type: 'priority' }] },
     ],
-    cities: { FJ: ['Östersund', 'Umeå', 'Visby', 'Kiruna', 'Luleå'], NV: ['Oslo', 'Köpenhamn', 'Berlin', 'London', 'Helsingfors'], SC: ['Palma', 'Alicante', 'Antalya', 'Chania', 'Rhodos'], BB: ['Riga', 'Tallinn', 'Vilnius', 'Gdańsk'], XX: ['Trondheim', 'Bergen', 'Åbo'] },
+    cities: { FJ: ['Östersund', 'Umeå', 'Visby', 'Kiruna', 'Luleå'], NV: ['Oslo', 'Köpenhamn', 'Berlin', 'London', 'Helsingfors'], SC: ['Palma', 'Alicante', 'Antalya', 'Chania', 'Rhodos'], BB: ['Riga', 'Tallinn', 'Vilnius', 'Gdańsk'], XX: ['Trondheim', 'Bergen', 'Åbo'], AU: ['New York', 'Toronto', 'Reykjavik'], CG: ['Leipzig', 'Liège', 'Billund'], VX: ['Genève', 'Nice', 'Monaco'], AM: ['Umeå', 'Uppsala', 'Göteborg'], LC: ['Barcelona', 'Budapest', 'Kraków', 'Porto'], LX: ['Paris', 'Milano', 'Zürich'] },
     layout: {
       terminal: { x0: -76, x1: 22 },
       stands: [{ id: 'A1', x: -46, contact: true }, { id: 'A2', x: -10, contact: true }, { id: 'R1', x: 30, contact: false }],

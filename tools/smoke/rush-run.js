@@ -14,6 +14,7 @@ try {
     if (sabotaged < 3) { var tg = R.units.find(function (u) { return u.kind === 'tug' && u.job === 'pushing'; }); if (tg) { R.select([tg]); R.command({ place: { x: 0, z: -20 } }); sabotaged++; } var tr = R.units.find(function (u) { return u.kind === 'train' && u.load; }); var other = S.flights.find(function (f) { return f.phase === 'stand' && tr && tr.load.indexOf(':' + f.id) < 0; }); if (tr && other) { R.select([tr]); R.command({ flight: other }); sabotaged++; } }
     S.flights.forEach(function (f) { if (last[f.id] !== f.phase) { last[f.id] = f.phase; if (['stand', 'taxiOut', 'diverted', 'holding'].indexOf(f.phase) >= 0) log.push(S.t.toFixed(0) + ' ' + f.code + ' ' + f.phase + '@' + f.stand + (f.stars ? ' ' + JSON.stringify(f.stars) : '')); } });
     if (i % 8 === 0) {
+      if (R.incidents) R.incidents().forEach(function (inc) { if (inc.btn && inc.act && Math.random() < 0.5) R.quick(inc.act); });
       var fw = R.units.filter(function (u) { return u.kind === 'worker' && u.state === 'idle' && !u.sick; });
       var br = R.units.find(function (u) { return u.broken; });
       if (br && fw.length && !R.units.some(function (u) { return u.fixUnit; })) { R.select([fw[0]]); R.command({ fixUnit: br }); }

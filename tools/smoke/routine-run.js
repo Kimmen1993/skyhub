@@ -14,6 +14,7 @@ try {
     var S = R.S;
     if (S.req) R.answer(true);
     if (i % 10 === 0) {
+      if (R.incidents) R.incidents().forEach(function (inc) { if (inc.btn && inc.act && Math.random() < 0.5) R.quick(inc.act); });
       if (!S.built.R1 && S.money >= 28000) { R.build('R1'); }
       if (S.built.R1 && !R.units.some(function (u) { return u.home === 'R1'; })) { var spare = R.units.filter(function (u) { return u.kind === 'worker' && !u.home && !u.sick; }); if (spare.length >= 2) { R.select(spare.slice(0, 2)); click({ home: 'R1' }); } }
       if (S.fuel <= 3 && !S.orders.length && S.money > 6000) R.orderFuel();
