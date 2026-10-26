@@ -135,11 +135,19 @@
     }
     const pay = { ch: 7500 }; C.contracts.forEach((c) => (pay[c.id] = c.pay));
     const building = {}; Object.entries(C.projects || {}).forEach(([k, p]) => (building[k] = p.ready));
+    // morgongenomgång: dagens förutsättningar, ett erbjudande och hur hårt regissören trycker på
+    const hard = C.next === 'tuff' ? 1 : C.next === 'extrem' ? 2 : C.next === 'lugn' ? -1 : 0;
+    const pool = ['flu', 'service', 'gate', 'pump', 'tight', 'press', 'rookies', season.id === 'sommar' ? 'heat' : 'fog'].sort(() => Math.random() - 0.5);
+    const mods = C.day < 3 ? [] : pool.slice(0, clamp(1 + (C.day >= 7 ? 1 : 0) + (C.day >= 14 ? 1 : 0) + Math.max(0, hard), 0, 4) - (hard < 0 ? 1 : 0));
+    const fresh = Object.keys(AIRLINES).filter((k) => !C.contracts.some((c) => c.al === k) && C.level >= AIRLINES[k].lvl - 1);
+    const offers = ['team', 'charter', 'film'].concat(fresh.length ? ['trial', 'trial'] : [], C.level >= 2 ? ['state'] : []);
+    const offer = C.day >= 3 && Math.random() < 0.8 ? pick(offers) : null;
+    const director = C.day < 3 ? 0 : clamp(1 + Math.floor((C.day - 3) / 5) + hard, 0, 4);
     return {
       id: 'k' + C.day, career: true, name: `Dag ${C.day} · ${mid ? 'Midsommarafton' : season.name} · ${tier.name}`, tier: C.next, season: season.id, midsummer: mid, building, start: '06:00', end: pad(lastArr + 70), money: C.money, fuel: C.fuel,
-      tutorial: C.day === 1, starPay: tier.star, cards: C.day === 1 ? 0 : clamp(1 + Math.floor(C.day / 2) + tier.cards, 0, 8), events, requests, flights, pay,
+      tutorial: C.day === 1, starPay: tier.star, mods, offer, director, trialAl: fresh.length ? pick(fresh) : null, stateOk: C.level >= 2, cards: C.day === 1 ? 0 : clamp(1 + Math.floor(C.day / 2) + tier.cards, 0, 8), events, requests, flights, pay,
       cardTypes: ['belt', 'spill', 'prm', 'sick', 'connect', 'birds', 'flat'].concat(season.id === 'host' ? ['birds', 'birds'] : []).concat(C.day >= 3 ? ['strike', 'dog', 'security'] : []).concat(C.day >= 5 ? ['inspection', 'ambulance'] : []),
-      staff: C.staff.map((w) => ({ id: w.id, name: w.name, skill: w.skill, home: w.home })),
+      staff: C.staff.filter((w) => !(w.out >= C.day)).map((w) => ({ id: w.id, name: w.name, skill: w.skill, home: w.home })),
       fleet: C.fleet.map((v) => ({ id: v.id, kind: v.kind, wear: v.wear, home: v.home })),
       belts: Object.assign({}, C.belts), built: Object.assign({}, C.built), noRoutines: C.level < 1,
     };
@@ -173,6 +181,15 @@
       c.sat = clamp(c.sat + d, 0, 100);
     });
     if (r.contractor) R.news.push(`Entreprenörer (avisning, plogning) kostade ${kr(r.contractor)} i dag.`);
+    // följder av dagens beslut och kriser
+    const q = r.conseq || {};
+    Object.entries(q.sat || {}).forEach(([al, d]) => C.contracts.filter((c) => c.al === al).forEach((c) => (c.sat = clamp(c.sat + d, 0, 100))));
+    if (q.rep) C.rep = clamp(C.rep + q.rep, 0, 100);
+    (q.news || []).forEach((n) => R.news.push(n));
+    Object.entries(q.out || {}).forEach(([rid, d]) => { const w = C.staff.find((x) => x.id === +rid); if (w) w.out = C.day + d; });
+    if (r.press) { const d = clamp(r.press.good * 0.4 - r.press.bad * 0.8, -4, 4); C.rep = clamp(C.rep + d, 0, 100); R.news.push(d >= 0 ? `Lokaltidningen: "Flygplatsen går som en klocka." Ryktet +${d.toFixed(1)}.` : `Lokaltidningen: "Stressigt på plattan, ${r.press.bad} plan fick inte full service." Ryktet ${d.toFixed(1)}.`); }
+    if (r.trial) { const a = AIRLINES[r.trial.al]; if (r.trial.ok && a) { C.offers.push({ id: nid(), al: r.trial.al, size: a.size, cargo: !!a.cargo, trait: a.trait || null, perDay: 1, pay: Math.round(a.base * 1.1 / 100) * 100, until: C.day + 4 }); R.news.push(`${D.airlines[r.trial.al].name} var nöjda med provflygningen och erbjuder ett avtal!`); } else { C.rep = clamp(C.rep - 2, 0, 100); R.news.push(`${D.airlines[r.trial.al].name} var inte imponerade av provflygningen.`); } }
+    R.log = r.log || []; R.mods = r.mods || [];
     if (r.inspection != null) { C.rep = clamp(C.rep + (r.inspection ? 5 : -4), 0, 100); R.news.push(r.inspection ? 'Inspektionen blev godkänd. Ryktet steg.' : 'Inspektionen blev underkänd. Ryktet sjönk.'); }
     C.contracts = C.contracts.filter((c) => { if (c.sat < 20) { R.news.push(`${D.airlines[c.al].name} är så missnöjda att de sagt upp avtalet.`); return false; } return true; });
     // erfarenhet och befordran
@@ -231,6 +248,7 @@
         ${R.promoted ? `<div class="promo">Befordrad till <b>${esc(LEVELS[R.promoted].t)}</b>! ${esc(LEVELS[R.promoted].unlock)}</div>` : ''}</div>
       <div class="card"><h3>Ekonomi</h3><div class="kv"><span>Intjänat under dagen</span><b>${kr(R.earned)}</b><span>Löner</span><b>−${kr(R.wages)}</b><span>Leasing</span><b>−${kr(R.lease)}</b><span>Hyra, el och avgifter</span><b>−${kr(R.fixed)}</b>${R.repair ? `<span>Akutreparationer</span><b>−${kr(R.repair)}</b>` : ''}<span class="tot">Dagens resultat</span><b class="tot">${kr(net)}</b></div></div></div>
       ${R.goals && R.goals.length ? `<div class="card"><h3>Milstolpe klar!</h3><ul>${R.goals.map((g) => `<li><b>${esc(g.t)}</b>: ${esc(g.d)} <b>+${kr(g.reward)}</b></li>`).join('')}</ul></div>` : ''}
+      ${R.log && R.log.length ? `<div class="card"><h3>Så blev dagen</h3>${R.mods && R.mods.length ? `<p class="note">Förutsättningar: ${R.mods.map(esc).join(' · ')}</p>` : ''}<ul>${R.log.map((n) => `<li>${esc(n)}</li>`).join('')}</ul></div>` : ''}
       ${R.news.length ? `<div class="card"><h3>Nyheter</h3><ul>${R.news.map((n) => `<li>${esc(n)}</li>`).join('')}</ul></div>` : ''}
       ${C.history.length > 1 ? `<div class="card"><h3>Senaste dagarna</h3><div class="hist">${C.history.slice(-10).map((h) => `<div title="Dag ${h.day}: ${h.pct} %"><i style="height:${Math.max(4, h.pct * 0.8)}px;background:${h.pct >= 80 ? 'var(--mint)' : h.pct >= 55 ? 'var(--sun)' : 'var(--coral)'}"></i><small>${h.day}</small></div>`).join('')}</div></div>` : ''}`;
   }
@@ -248,7 +266,7 @@
   function staff() {
     return `<div class="grid2"><div><h3>Ditt lag</h3>${C.staff.map((w) => {
       const cost = 4000 * Math.ceil(w.skill);
-      return `<div class="row"><div><b>${esc(w.name)}</b><small>Skicklighet <span class="st">${stars(w.skill)}</span> · lön ${kr(w.wage)}/dag${w.home ? ' · fast på ' + w.home : ''}</small><span class="bar"><s style="width:${w.morale}%;background:${w.morale > 55 ? 'var(--mint)' : w.morale > 25 ? 'var(--sun)' : 'var(--coral)'}"></s></span><small>Moral ${Math.round(w.morale)} %${w.morale < 30 ? ' – riskerar att sluta' : ''}</small></div>
+      return `<div class="row"><div><b>${esc(w.name)}</b><small>Skicklighet <span class="st">${stars(w.skill)}</span> · lön ${kr(w.wage)}/dag${w.home ? ' · fast på ' + w.home : ''}${w.out >= C.day ? ` · <b>sjukskriven till och med dag ${w.out}</b>` : ''}</small><span class="bar"><s style="width:${w.morale}%;background:${w.morale > 55 ? 'var(--mint)' : w.morale > 25 ? 'var(--sun)' : 'var(--coral)'}"></s></span><small>Moral ${Math.round(w.morale)} %${w.morale < 30 ? ' – riskerar att sluta' : ''}</small></div>
         <button type="button" class="btn" data-c="train:${w.id}" ${w.skill >= 5 || w.trained === C.day || C.money < cost ? 'disabled' : ''}>Utbilda ${kr(cost)}</button>
         <button type="button" class="btn" data-c="bonus:${w.id}" ${C.money < 1500 || w.bonusDay === C.day ? 'disabled' : ''}>Bonus 1 500 kr</button>
         ${confirm === 'fire' + w.id ? `<button type="button" class="btn r" data-c="fire:${w.id}">Säg upp</button>` : `<button type="button" class="btn" data-c="askfire:${w.id}" ${C.staff.length <= 1 ? 'disabled' : ''}>×</button>`}</div>`;
