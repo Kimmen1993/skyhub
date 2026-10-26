@@ -646,6 +646,7 @@
     if (G.modal) return;
     const k = e.key.toLowerCase(); keys.add(k);
     if (k === ' ') { e.preventDefault(); G.paused = !G.paused; }
+    if (k === 'f') { G.fast = !G.fast; hudTick(); }
     if (k === '.' || k === 'i') selectIdle();
     if (k === 'escape') select([]);
     if (k === 'b') G.panel = !G.panel, panel();
@@ -700,6 +701,7 @@
       <div class="res fuel ${S.fuel <= 2 ? 'low' : ''}"><b class="num">⛽ ${S.fuel}</b><small>Bränsle i depå</small></div>
       <button type="button" class="btn ${S.fuel <= 3 && !S.orders.length ? 'y' : ''}" data-act="order" ${S.orders.length || S.money < D.fuelOrder.cost ? 'disabled' : ''}>${S.orders.length ? `Leverans ${fmt(S.orders[0].at)}` : `Beställ bränsle +${D.fuelOrder.units} · 6 000 kr`}</button>
       <button type="button" class="btn ${idle ? 'r' : ''}" data-act="idle">Sysslolösa: ${idle}</button>
+      <button type="button" class="btn ${G.fast ? 'y' : ''}" data-act="fast" title="Snabbspola (F)">${G.fast ? '2× på' : '2×'}</button>
       <div class="res"><b class="num">${'★'.repeat(Math.min(5, Math.round(S.maxStars ? S.stars / S.maxStars * 5 : 0)))}<span style="opacity:.25">${'★'.repeat(5 - Math.min(5, Math.round(S.maxStars ? S.stars / S.maxStars * 5 : 0)))}</span></b><small>${S.stars} / ${S.maxStars} stjärnor</small></div>`;
     // prognos
     const t = S.t, inbound = S.flights.filter((f) => ['sched', 'holding', 'approach', 'rollout', 'taxiIn'].includes(f.phase)).sort((a, b) => a.sta - b.sta).slice(0, 6);
@@ -809,7 +811,7 @@
   function frameBody(now) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     const run = S.started && !G.paused && !G.modal && !S.ended;
-    if (run) {
+    for (let step = 0; step < (run && G.fast ? 2 : 1); step++) if (run && !S.ended) {
       S.t += dt * D.GMIN_PER_SEC;
       eventTick(); coachTick();
       S.flights.forEach((f) => flightTick(f, dt));
@@ -883,6 +885,7 @@
     if (d.day) { closeModal(); newGame(+d.day); S.started = true; Sfx.ding(); radio('TORNET', `God morgon! ${S.day.name.split('· ')[1]} börjar. Första planet är på väg.`); }
     else if (d.act === 'days') dayMenu();
     else if (d.act === 'temp') hireTemp();
+    else if (d.act === 'fast') { G.fast = !G.fast; hudTick(); }
     else if (d.act === 'menu') { if (SH.Career) SH.Career.mainMenu(); else dayMenu(); }
     else if (d.req) answer(d.req === 'yes');
     else if (d.act === 'order') orderFuel();
