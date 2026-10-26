@@ -43,6 +43,7 @@ Spelet ska kräva strategi hela vägen och inte lösas på en timme och sedan ba
 | 2026-10-24 | **Två sätt att spela som påverkar varandra**: *Driftcentralen* (gateplanering på tidslinje, personal, utrustning och service, bränsle och externa firmor, ekonomi) och *golvet* (problem blir korta hands-on-uppgifter på 15–40 s: hämta verktyg och laga, plocka FOD, eskortera vilsen passagerare, starta om brygga, marshalla in plan själv, hjälpa till att lasta). Bra planering ger färre bränder. | Kimm: v0.2 kändes inte interaktivt, "bara lite off". Diagnos: för få beslut, för enkla handlingar, pengar utan användning, tyst och stelt. |
 | 2026-10-24 | **Polish är en del av spelet**: ljud (motorer, tut, pling, tornets radio), reaktioner när man löser saker, tydligare UI med nedre menyrad, varningslista och minikarta. | Samma återkoppling: "saknar den sista touchen". |
 | 2026-10-26 | **Principer för svårighet och tydlighet:** (1) svårt från början men aldrig orättvist, (2) alltid tydligt vad som krävs, och möjligt att förutse och förebygga, (3) svårigheten varierar: lugna dagar och nästan omöjliga dagar, så att man vill bevisa att det går. Varje problem ska ha en synlig markering, en förklaring av vad som krävs och en snabbknapp. | Kimm efter 7 dagars karriär: missade fåglarna, kunde inte laga en maskin som inte hörde till ett plan. Föreslog en bil till personalen för långa sträckor. |
+| 2026-10-26 | **Utbyggnaden före grafiken.** Varje utbyggnad ger ett nytt område och ett nytt sorts jobb, inte bara fler plan. Allt byggs datadrivet (platser, byggnader, fordon som listor) så att grafiksteget bara byter modeller. | Kimm efter fler dagar: repetitivt, ambulans och frakt var "samma sak men mindre", kunde inte bygga mer på högsta nivån. "Kör på det, bara vi inte får för stort jobb sen med grafiken." |
 | 2026-10-26 | **M3 (variation) före M2 (grafik).** | Upprepning är den största risken. Grafik löser inte det, nytt innehåll gör det. |
 | 2026-10-24 | **KÄRNAN ÄR HITTAD: rusningsformatet.** Realtidsstrategi på plattan med enheter man ger order, fasta lag, resurser, väder i nivåer och slumpade händelsekort. Det riktiga spelet byggs runt detta. Chefsläget (v0.3) och karriärläget med handgjorda turnarounds läggs åt sidan som separata spår, men delar av dem (befordran, driftcentralens innehåll, hoppa in själv) återanvänds. | Kimm: "Det känns bra nu … jag blir lite bättre varje gång … grunden finns nog där." Har kört dag 4 tre gånger utan att nå 100 %. |
 | 2026-10-24 | **Testar realtidsstrategi** (känsla som Age of Empires): du markerar arbetare och fordon och ger order, resurser tar slut (bränsle, ork), du bygger på byggplatser, trafiken kommer i rusningar och oväntade händelser (åska i prognosen, haveri, nödlandning) kräver förutseende. Prototyp i `rts/`. | Kimm: karriärprototypen var inte heller rätt. Vill ha en hektisk miljö där det hela tiden händer något oväntat, man samlar och gör saker, förutser och blir bättre. Alla tidigare beslut får omprövas. |
@@ -148,7 +149,19 @@ Saker som byggs nu men måste hänga ihop med senare delar. Uppdatera när någo
   Dessutom: listan visar vad varje plan saknar med en knapp "Skicka", väntande arbetare går att omfördela,
   knappar stjäl aldrig fordon från andra plan, manuellt skickade arbetare stannar kvar på jobbet, en vakt
   omdirigerar fastkörda enheter, en lös hund springer iväg efter 12 min. Robot: tre 12-dagarskarriärer utan låsning.
-- **M3b (sedan)**: säsonger med vinter, snö och avisning, samt milstolpar.
+- **Kimm efter fler dagar (2026-10-26)**: repetitivt, fick aldrig widebody, klick i enhetslistan tappades, skift reagerade inte,
+  enheter gömde sig, inget mer att bygga på högsta nivån. Rättat: listan ritas bara om när något ändrats och knappar reagerar
+  på nedtryck, skift-klick växlar, nålar över alla enheter (syns genom plan och hus, färg = läge), nya bolag hör av sig först.
+- **Utbyggnad 1 (klar)**: Pir B (Driftchef, 140 000 kr, byggs på två dagar med synlig byggarbetsplats, 9 000 kr/dag i drift):
+  B1 och B2 med brygga (B2 tar widebody), fjärrplats R2, ny taxibaneanslutning. Passagerarbuss krävs på fjärrplatser (karriären).
+  Årstider fem dagar var: vår, sommar (charter utan avtal, midsommarafton dag 3 med sex extra plan), höst (fler stormar,
+  flyttfåglar), vinter (snöfall lägger snö på banan som stänger vid 100 % tills den plogas, alla avgångar avisas,
+  kylan tröttar, +3 min marginal). Plantyper med egna jobb: widebody och lyxbolag vill ha catering, privatjet VIP-transport
+  med Follow me-bilen (annars en arbetare), ambulansflyg: ambulansen väntar vid grinden och måste eskorteras,
+  frakt: highloader (en arbetare räcker, 50 % fortare). Saknas eget fordon gör en entreprenör jobbet långsamt och mot betalning
+  (avisning 3 000, catering 1 500, plogning 4 000). Nya fordon: buss, avisningsbil, snöplog, cateringbil, highloader.
+  Milstolpar med belöning på kontoret (fliken Mål). Robot: 24 dagar utan låsning, riktat plantypstest.
+- **Nästa**: fraktterminal och hangar (tekniska fel), större händelsedagar (statsbesök, snöstormen), sedan grafik och proportioner.
   Byggläget (flytta och bygga gates, taxilinjer, depåer) kommer efter det. (v1 och v2 sparade som `mockups/stilskiss-v1.html` och `-v2.html`) för tecknad 3D med golvläge (`mockups/stilskiss.html`,
   https://kimmen1993.github.io/skyhub/mockups/stilskiss.html). Väntar på Kimms omdöme om stil och känsla.
   Skissen är ritad helt i kod. Den riktiga versionen kan använda gratis modellpaket (CC0) för rikare figurer och fordon.

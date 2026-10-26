@@ -37,7 +37,9 @@
   const SITE_LVL = { R1: 1, fuel2: 2, rest: 2 };
   const FLEET = { fuel: { name: 'Tankbil', price: 28000, lease: 900 }, train: { name: 'Bagagetåg', price: 18000, lease: 600 }, tug: { name: 'Pushbacktraktor', price: 32000, lease: 1100 },
     bus: { name: 'Passagerarbuss', price: 26000, lease: 800, desc: 'Kör passagerarna mellan terminalen och fjärrplatserna (R1, R2).' },
-    ops: { name: 'Follow me-bil', price: 24000, lease: 800, desc: 'Snabb bil som skrämmer fåglar och fångar lösa hundar.' },
+    ops: { name: 'Follow me-bil', price: 24000, lease: 800, desc: 'Skrämmer fåglar, fångar lösa hundar, kör VIP-gäster från privatjet och eskorterar ambulanser.' },
+    cater: { name: 'Cateringbil', price: 22000, lease: 700, desc: 'Widebody och lyxbolag vill ha catering. Utan egen bil kommer cateringfirman, långsamt och för 1 500 kr.' },
+    loader: { name: 'Highloader', price: 30000, lease: 1000, desc: 'Lastar fraktpallar: en arbetare räcker och det går 50 % fortare. Bandlastaren slits inte.' },
     deice: { name: 'Avisningsbil', price: 34000, lease: 1100, desc: 'Vinter: varje avgång ska avisas. Utan egen bil gör entreprenören det, långsamt och för 3 000 kr per plan.' },
     plow: { name: 'Snöplog', price: 30000, lease: 900, desc: 'Vinter: plogar banan innan den stängs. Utan egen plog väntar du på entreprenören.' } };
   // Stora utbyggnader tar några dagar att bygga.

@@ -7,3 +7,5 @@ $JSC tools/smoke/dom-stub.js "$1" tools/smoke/after-three.js rts/js/data.js game
 $JSC tools/smoke/dom-stub.js "$1" tools/smoke/after-three.js rts/js/data.js game/js/sim.js game/js/gfx.js game/js/world.js career/js/sfx.js rts/js/career.js rts/js/rts.js tools/smoke/coach-run.js
 # Fasta lag och händelsekort
 $JSC tools/smoke/dom-stub.js "$1" tools/smoke/after-three.js rts/js/data.js game/js/sim.js game/js/gfx.js game/js/world.js career/js/sfx.js rts/js/career.js rts/js/rts.js tools/smoke/routine-run.js
+# Plantyper med egna behov (privatjet, widebody, frakt, ambulans) på en vinterdag
+$JSC tools/smoke/dom-stub.js "$1" tools/smoke/after-three.js rts/js/data.js game/js/sim.js game/js/gfx.js game/js/world.js career/js/sfx.js rts/js/career.js rts/js/rts.js tools/smoke/types-run.js

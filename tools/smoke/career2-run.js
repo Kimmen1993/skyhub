@@ -19,6 +19,8 @@ try {
     if (C.level >= 3 && !C.built.pierB && !(C.projects || {}).pierB && C.money > 150000) K.action('project:pierB');
     if (C.day >= 14 && !C.fleet.some(function (v) { return v.kind === 'plow'; }) && C.money > 60000) K.action('buy:plow');
     if (C.day >= 17 && !C.fleet.some(function (v) { return v.kind === 'deice'; }) && C.money > 60000) K.action('buy:deice');
+    if (C.day >= 12 && !C.fleet.some(function (v) { return v.kind === 'cater'; }) && C.money > 60000) K.action('buy:cater');
+    if (C.day >= 9 && C.day % 2 && !C.fleet.some(function (v) { return v.kind === 'loader'; }) && C.money > 60000) K.action('buy:loader');
     if (C.built.pierB && C.fleet.filter(function (v) { return v.kind === 'train'; }).length < 3 && C.money > 50000) K.action('buy:train');
     C.staff.forEach(function (w) { if (w.morale < 35 && C.money > 3000) K.action('bonus:' + w.id); });
     var dayNo = C.day;
@@ -59,5 +61,5 @@ try {
     C = K.C; var L = C.last;
     log.push('dag ' + dayNo + ': ' + (L ? L.stars + '/' + L.maxStars + ' div ' + L.diverted + ' tjänat ' + L.earned + ' netto ' + (L.earned - L.wages - L.lease - L.fixed - L.repair) : 'INGEN RAPPORT') + ' | kassa ' + Math.round(C.money) + ' rykte ' + Math.round(C.rep) + ' nivå ' + C.level + ' avtal ' + C.contracts.map(function (c) { return c.al + 'x' + c.perDay + '(' + Math.round(c.sat) + ')'; }).join(',') + ' personal ' + C.staff.length + ' fordon ' + C.fleet.map(function (v) { return v.kind[0] + v.wear; }).join(' ') + ' byggt ' + Object.keys(C.built).join(',') + ' typ ' + (L && L.tier) + ' ' + (R.S.season || '') + (C.projects && C.projects.pierB ? ' BYGGER' : '') + ' mål ' + Object.keys(C.goals || {}).join(',') + (L && L.news.length ? ' | ' + L.news.join(' / ') : ''));
   }
-  print(log.join('\n'));
+  print(log.join('\n')); print('AMB-ESKORTER ' + (typeof __amb !== 'undefined' ? __amb : '?'));
 } catch (e) { print('KRASCH: ' + e + '\n' + e.stack); }
