@@ -846,7 +846,10 @@
       if (k === 'fill') { const inc = incidents().find((i) => i.key === 'miss' + f.id); want = []; if (inc) { const m = inc.title.split('saknar: ')[1]; const wn = /(\d) arbetare/.exec(m); if (wn) for (let i = 0; i < +wn[1]; i++) want.push('worker'); if (/bagagetåg/.test(m)) want.push('train'); if (/tankbil/.test(m)) want.push('fuel'); if (/depån är tom/.test(m)) orderFuel(); if (/pushback/.test(m)) want.push('tug'); } }
       const taken = [];
       const busyVeh = [];
-      want.forEach((kind) => { const u = nearestFree(f.x, f.z, [kind], 6).find((x) => !taken.includes(x) && x.assign !== f.id && !(x.kind === 'train' && x.load) && (kind === 'worker' || !x.assign)); if (!u && kind !== 'worker') busyVeh.push(KIND[kind]); if (u) { taken.push(u); u.assign = f.id; u.job = null; u.fixBelt = null; u.fixUnit = null; u.chase = false; u.state = 'busy'; } });
+      // arbetare: bara lediga, eller sådana som är fler än deras plan behöver just nu
+      const needW = (g) => { const o = (k2) => !g.tasks[k2].na && !done(g, k2) && ready(g, k2); return ['unload', 'load'].some(o) ? 2 : ['chocks', 'bridge', 'prm', 'chocksOff'].some(o) ? 1 : 0; };
+      const spare = (x) => { if (!x.assign) return true; const g = S.flights.find((y) => y.id === x.assign); if (!g || !g.tasks) return true; return units.filter((y) => y.assign === g.id && y.kind === 'worker').length > needW(g); };
+      want.forEach((kind) => { const u = nearestFree(f.x, f.z, [kind], 8).find((x) => !taken.includes(x) && x.assign !== f.id && !(x.kind === 'train' && x.load) && (kind === 'worker' ? spare(x) : !x.assign)); if (!u && kind !== 'worker') busyVeh.push(KIND[kind]); if (u) { taken.push(u); u.assign = f.id; u.job = null; u.fixBelt = null; u.fixUnit = null; u.chase = false; u.state = 'busy'; } });
       if (busyVeh.length) banner(`${busyVeh.join(' och ')} är upptagen vid ett annat plan. Den kommer när den är klar, eller skaffa en till på kontoret.`, 'bad');
       else banner(taken.length ? `${taken.map((u) => u.kind === 'worker' ? u.name : KIND[u.kind]).join(', ')} skickas till ${f.code}.` : 'Ingen ledig att skicka. Ta någon från ett annat plan eller ring in en vikarie.', taken.length ? 'info' : 'bad');
     }

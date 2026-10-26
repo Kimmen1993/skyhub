@@ -46,7 +46,7 @@ try {
     frame();
   }
   var S = R.S;
-  print('DAG ' + day + ': coach', R.S.coach, 'stars', S.stars, '/', S.maxStars, 'done', S.done, 'ontime', S.ontime, 'div', S.diverted, 'money', Math.round(S.money), 'fuel', S.fuel, 'built', JSON.stringify(S.built), 'stuck', S.flights.filter(function (f) { return ['stand', 'pushback', 'holding', 'taxiIn'].indexOf(f.phase) >= 0; }).map(function (f) { return f.code + ':' + f.phase; }).join(','));
+  print('DAG ' + day + ': coach', R.S.coach, 'stars', S.stars, '/', S.maxStars, 'done', S.done, 'ontime', S.ontime, 'div', S.diverted, 'money', Math.round(S.money), 'fuel', S.fuel, 'built', JSON.stringify(S.built), 'stuck', S.flights.filter(function (f) { return ['stand', 'pushback', 'holding', 'taxiIn'].indexOf(f.phase) >= 0; }).map(function (f) { return f.code + ':' + f.phase + '@' + f.stand + (f.tasks ? '[' + Object.keys(f.tasks).filter(function (k) { return f.tasks[k].st !== 'done'; }).map(function (k) { return k + '=' + f.tasks[k].st + (f.tasks[k].need ? '(' + f.tasks[k].need + ')' : ''); }).join(',') + ']' : ''); }).join(' '), S.flights.some(function (f) { return f.phase === 'stand'; }) ? '| inc: ' + R.incidents().map(function (i) { return i.title; }).join('; ') + ' | units: ' + R.units.map(function (u) { return u.kind[0] + u.id + ':' + u.state + (u.assign ? '@' + u.assign : '') + (u.broken ? 'B' : '') + (u.sick ? 'S' : '') + (u.load ? '{' + u.load + '}' : ''); }).join(' ') + ' spill ' + JSON.stringify(S.spill) + ' broken ' + JSON.stringify(S.broken) : '');
  }
  print(log.filter(function (l) { return /diverted|END/.test(l); }).join('\n'));
 } catch (e) { print('KRASCH: ' + e + '\n' + e.stack); }
