@@ -58,7 +58,9 @@
     const sd = standById(stand), cz = centerZ(size), rz = L.runwayZ, thr = L.threshold;
     const app = [P(thr - 360, rz, SPD.approach, 50), P(thr, rz, SPD.touch, 0)];
     const roll = [P(thr, rz, SPD.touch), P(L.exit.from - 40, rz, 16), P(L.exit.from, rz, SPD.exitv), P(L.exit.to, L.taxiwayZ, SPD.exitv)];
-    const taxi = smooth([P(L.exit.to, L.taxiwayZ, SPD.taxi), P(L.laneX[1], L.taxiwayZ, SPD.taxi), P(L.laneX[1], L.taxilaneZ, SPD.taxi), P(sd.x, L.taxilaneZ, SPD.slow * 1.6), P(sd.x, cz, SPD.slow)], 12);
+    // anslutning från taxibanan in till plattan: den närmaste som ligger öster om gaten (fler finns när piren är byggd)
+    const conns = L.connectors || [L.laneX[1]], cx = conns.find((x) => x >= sd.x + 18) || conns[conns.length - 1];
+    const taxi = smooth([P(L.exit.to, L.taxiwayZ, SPD.taxi), P(cx, L.taxiwayZ, SPD.taxi), P(cx, L.taxilaneZ, SPD.taxi), P(sd.x, L.taxilaneZ, SPD.slow * 1.6), P(sd.x, cz, SPD.slow)], 12);
     return { app, roll, taxi };
   }
   function pushPath(stand, size) {

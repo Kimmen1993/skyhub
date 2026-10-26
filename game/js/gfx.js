@@ -162,6 +162,40 @@
         at(rbox(2.25, 0.45, 4.05, 0xe8634a, g, 0.13, false), 0, 4.4, -0.4);
         for (const z of [1.8, -1.8]) for (const sx of [1, -1]) wheel(0.45, 0.4, g, sx * 1.0, 0.45, z);
         break;
+      case 'deice': { // avisningsbil: tank, bom och korg
+        at(rbox(2.2, 1.9, 2.2, 0x3f6fd8, g, 0.4), 0, 1.35, 2.7); at(rbox(2.05, 0.8, 1.6, 0x7fd3f0, g, 0.25, false), 0, 1.95, 3.0);
+        at(rbox(2.3, 1.7, 4.4, 0xf2b134, g, 0.5), 0, 1.45, -0.9);
+        const boom = new T.Group(); boom.position.set(0, 2.4, -2.4); g.add(boom); boom.rotation.x = -0.7;
+        at(rbox(0.5, 0.5, 6, 0xe6eaf0, boom, 0.15), 0, 0, 3);
+        at(rbox(1.4, 1.0, 1.4, 0xe8634a, boom, 0.25), 0, 0.3, 6.2);
+        g.userData.boom = boom;
+        for (const z of [2.4, -0.6, -2.4]) for (const sx of [1, -1]) wheel(0.47, 0.4, g, sx * 1.1, 0.47, z);
+        break;
+      }
+      case 'plow': { // snöplog: lastbil med stort snett blad
+        at(rbox(2.3, 2.0, 2.4, 0xff7a2f, g, 0.45), 0, 1.5, 1.6); at(rbox(2.15, 0.8, 1.8, 0x7fd3f0, g, 0.25, false), 0, 2.1, 1.9);
+        at(rbox(2.3, 1.2, 3.6, 0x3c4a63, g, 0.3), 0, 1.0, -1.4);
+        const bl = at(rbox(4.6, 1.3, 0.35, 0xf2b134, g, 0.15), 0, 0.8, 3.6); bl.rotation.y = 0.35;
+        at(sph(0.22, 0xff9a1f, g, false), 0, 2.75, 1.6);
+        for (const z of [1.6, -1.6]) for (const sx of [1, -1]) wheel(0.55, 0.45, g, sx * 1.15, 0.55, z);
+        break;
+      }
+      case 'loader': { // highloader för fraktpallar
+        at(rbox(2.6, 0.6, 5.2, 0x3c4a63, g, 0.2), 0, 0.6, 0);
+        at(rbox(1.4, 1.3, 1.3, 0x7fd3f0, g, 0.25), -0.5, 1.5, 2.2);
+        const deck = at(rbox(2.6, 0.3, 3.4, 0xf2b134, g, 0.1), 0, 2.4, -0.6);
+        for (const sx of [1, -1]) { const x = at(rbox(0.14, 2.2, 0.16, 0x9aa3b0, g, 0.04, false), sx * 1.0, 1.5, -0.6); x.rotation.x = sx * 0.7; }
+        g.userData.deck = deck;
+        for (const z of [1.8, -1.8]) for (const sx of [1, -1]) wheel(0.42, 0.35, g, sx * 1.2, 0.42, z);
+        break;
+      }
+      case 'ambulance':
+        at(rbox(2.0, 2.0, 4.2, 0xf4efe6, g, 0.45), 0, 1.3, -0.3); at(rbox(1.95, 1.3, 1.4, 0xf4efe6, g, 0.4), 0, 1.0, 2.3);
+        at(rbox(1.97, 0.7, 1.0, 0x7fd3f0, g, 0.22, false), 0, 1.5, 2.2);
+        at(rbox(2.04, 0.35, 5.6, 0xe8634a, g, 0.1, false), 0, 1.1, 0.4);
+        g.userData.beacon = at(sph(0.22, 0x3f6fd8, g, false), 0, 2.45, 1.4);
+        for (const z of [1.7, -1.6]) for (const sx of [1, -1]) wheel(0.42, 0.35, g, sx * 0.95, 0.42, z);
+        break;
       case 'van':
       default:
         at(rbox(1.9, 1.8, 3.6, 0xf4efe6, g, 0.45), 0, 1.2, 0); at(rbox(1.95, 0.8, 1.2, 0x7fd3f0, g, 0.25, false), 0, 1.65, 1.2);

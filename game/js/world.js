@@ -5,8 +5,10 @@
   const D = SH.D, L = D.layout;
 
   function build(scene, name) {
-    const W = { colliders: { boxes: [], circles: [] }, occluders: [], bridges: {}, lights: [] };
-    const add = (o) => (scene.add(o), o);
+    const W = { colliders: { boxes: [], circles: [] }, occluders: [], bridges: {}, lights: [], flat: {} };
+    let tgt = scene; // utbyggnader ritas i en egen grupp som kan visas när de är byggda
+    const add = (o) => (tgt.add(o), o);
+    const base = L.stands.filter((s) => !s.pier);
 
     // ---------- markband (alla platta linjer samlas per färg till en mesh) ----------
     const batches = {};
@@ -22,9 +24,10 @@
     function flush() {
       Object.entries(batches).forEach(([c, tris]) => {
         const g = new T.BufferGeometry(), arr = new Float32Array(tris.length * 3);
-        tris.forEach((p, i) => arr.set(p, i * 3));
+        tris.forEach((p, i) => arr.set(p, i * 3)); delete batches[c];
         g.setAttribute('position', new T.BufferAttribute(arr, 3)); g.computeVertexNormals();
         const m = new T.Mesh(g, new T.MeshToonMaterial({ color: +c, gradientMap: grad, side: T.DoubleSide })); m.receiveShadow = true; add(m);
+        if (tgt === scene) W.flat[c] = m;
       });
     }
     const arc = (cx, cz, r, a0, a1, n) => Array.from({ length: n + 1 }, (_, i) => { const a = a0 + (a1 - a0) * i / n; return [cx + Math.cos(a) * r, cz + Math.sin(a) * r]; });
@@ -75,7 +78,7 @@
       ribbon(0xffffff, [[x + 10, L.roadZ[1]], [x + 7, L.roadZ[1]]], 0.25, 0.026); ribbon(0xffffff, [[x + 7, L.roadZ[1]], [x + 8, L.roadZ[1] + 0.6]], 0.25, 0.026); ribbon(0xffffff, [[x + 7, L.roadZ[1]], [x + 8, L.roadZ[1] - 0.6]], 0.25, 0.026);
     }
     // uppställningsplatser
-    L.stands.forEach((st) => {
+    function standMarks(st) {
       const sx = st.x, r = 12;
       ribbon(Y, [[sx + r + 4, L.taxilaneZ], ...arc(sx + r, L.taxilaneZ + r, r, -Math.PI / 2 - 0.0001, -Math.PI, 10).slice(1), [sx, L.stopZ - 1]], 0.4, 0.026);
       rect(Y, sx - 3, L.stopZ - 0.3, sx + 3, L.stopZ + 0.3, 0.027);
@@ -86,7 +89,8 @@
       n.rotation.x = -Math.PI / 2; n.rotation.z = Math.PI; n.position.set(sx, 0.03, L.taxilaneZ + 12); add(n);
       // utrustningsruta (staging)
       ribbon(0xffffff, [[sx + 14, -9], [sx + 21, -9], [sx + 21, -20], [sx + 14, -20], [sx + 14, -9]], 0.18, 0.026);
-    });
+    }
+    base.forEach(standMarks);
     // depåns yta
     rect(0xc5ccd6, L.depot.x - 10, L.depot.z - 16, L.depot.x + 10, L.depot.z + 10, 0.016);
     flush();
@@ -119,7 +123,7 @@
     W.setName = (n) => { signMat.map = textTex((n + ' flygplats').toUpperCase(), 1280, 104, '#2e3a52', '#f2b134', '700 78px "Fredoka", sans-serif'); signMat.needsUpdate = true; };
     W.setName(name);
     const ads = [['NORDVIND', 'Oslo på 59 min', '#3f6fd8'], ['TAX FREE', '−20 % på allt', '#e8634a'], ['FJÄLLFLYG', 'Hem till fjällen', '#2bb3a6'], ['TERMICO', 'Vi köar för dig', '#8b5cf6']];
-    const contactXs = L.stands.filter((s) => s.contact).map((s) => s.x + 6);
+    const contactXs = base.filter((s) => s.contact).map((s) => s.x + 6);
     ads.forEach(([a, b, bg], i) => {
       const ax = contactXs[i] + 12; if (ax > L.terminal.x1 - 6) return;
       const t = tex((x, w, h) => { x.fillStyle = bg; x.fillRect(0, 0, w, h); x.fillStyle = '#fff'; x.textAlign = 'center'; x.font = '700 70px Fredoka, sans-serif'; x.fillText(a, w / 2, 86); x.font = '600 40px Nunito, sans-serif'; x.fillText(b, w / 2, 150); }, 512, 200);
@@ -130,15 +134,15 @@
     at(rbox(5, 3.2, 0.6, 0x3c4a63, term, 0.3), L.busStop.x - 12 - TX, 1.6, -10.1);
 
     // ---------- bryggor ----------
-    L.stands.filter((s) => s.contact).forEach((st) => {
+    function bridgeFor(st, signParent, signX, signZ) {
       const rx = st.x + 6, rz = -9, H = 4.6;
       const g = new T.Group(); add(g); W.occluders.push(g);
       at(rbox(2.6, 2.8, 9, 0xe6eaf0, g, 0.4), rx, H, -4.4);           // fast gång över vägen
       at(cyl(0.35, 0.35, H - 1.4, 0x6b7489, g, 8), rx, (H - 1.4) / 2, -0.5);
       at(cyl(1.8, 1.8, 3.2, 0xe6eaf0, g), rx, H, rz);                 // rotunda
       at(cyl(0.4, 0.4, H, 0x6b7489, g, 10), rx, H / 2, rz);
-      const gs = decal(textTex(st.id, 220, 90, '#f2b134', '#1d2433', '700 64px "Fredoka", sans-serif'), 4.2, 1.7, term);
-      gs.position.set(rx - TX, 9.4, -11.15); gs.rotation.y = Math.PI;
+      const gs = decal(textTex(st.id, 220, 90, '#f2b134', '#1d2433', '700 64px "Fredoka", sans-serif'), 4.2, 1.7, signParent);
+      gs.position.set(rx - signX, 9.4, signZ); gs.rotation.y = Math.PI;
       // teleskopdel: pivot i rotundan, roteras och skalas mot planets dörr
       const piv = new T.Group(); piv.position.set(rx, H, rz); g.add(piv);
       const tube = rbox(2.8, 3, 1, 0xe6eaf0, piv, 0.4); tube.position.z = 0.5;
@@ -147,10 +151,11 @@
       at(cyl(0.3, 0.3, 1, 0x6b7489, leg, 8), 0, 0, 0);
       W.bridges[st.id] = { piv, tube, stripe, leg, rx, rz, H, cur: { yaw: Math.PI * 0.85, len: 6, pitch: 0 } };
       W.colliders.circles.push({ x: rx, z: rz, r: 2.0 });
-    });
+    }
+    base.filter((s) => s.contact).forEach((st) => bridgeFor(st, term, TX, -11.15));
 
     // ---------- belysningsmaster ----------
-    L.stands.forEach((st) => {
+    function mast(st) {
       const x = st.x + 18, z = -8.6;
       const g = new T.Group(); g.position.set(x, 0, z); add(g);
       at(cyl(0.3, 0.45, 20, 0xc3cad4, g, 8), 0, 10, 0);
@@ -158,7 +163,8 @@
       const lamp = at(rbox(2.6, 0.2, 0.9, 0xfff4c2, g, 0.05, false), 0, 19.55, -0.4); lamp.material = new T.MeshBasicMaterial({ color: 0x888060 });
       W.lights.push(lamp);
       W.colliders.circles.push({ x, z, r: 0.7 });
-    });
+    }
+    base.forEach(mast);
 
     // ---------- depå ----------
     const dep = new T.Group(); dep.position.set(L.depot.x, 0, L.depot.z - 13); add(dep); W.occluders.push(dep);
@@ -204,6 +210,42 @@
       for (let k = 0; k < 4; k++) { const s = sph(5 + (k % 2) * 2.5, 0xffffff, g, false); s.position.set(k * 5.5 - 8, (k % 2) * 2.5, (k % 3) * 2); s.castShadow = false; }
       W.clouds.push(g);
     }
+    W.grass = grass;
+
+    // ---------- utbyggnad: en ny pir med gates, platta, taxibana och terminalbyggnad ----------
+    W.piers = {};
+    W.addPier = (P) => {
+      if (W.piers[P.id]) return W.piers[P.id];
+      const g = new T.Group(); scene.add(g); W.piers[P.id] = g; tgt = g;
+      const stands = L.stands.filter((s) => s.pier === P.id);
+      // platta, taxibana, anslutning, serviceväg
+      const ap = new T.Mesh(new T.PlaneGeometry(P.x1 - P.x0, az1 - az0), new T.MeshToonMaterial({ map: apronTex, gradientMap: grad }));
+      ap.rotation.x = -Math.PI / 2; ap.position.set((P.x0 + P.x1) / 2, 0.011, (az0 + az1) / 2); ap.receiveShadow = true; add(ap);
+      rect(asph, P.x0 - 8, L.taxiwayZ - 5, P.conn + 8, L.taxiwayZ + 5, 0.012);
+      rect(asph, P.conn - 6, L.taxiwayZ, P.conn + 6, az0 + 1, 0.012);
+      ribbon(Y, [[L.laneX[1], L.taxilaneZ], [P.conn, L.taxilaneZ]], 0.4, 0.025);
+      ribbon(Y, [[L.laneX[1], L.taxiwayZ], [P.conn, L.taxiwayZ]], 0.4, 0.025);
+      ribbon(Y, [[P.conn, L.taxilaneZ], [P.conn, L.taxiwayZ]], 0.4, 0.025);
+      rect(0x6b7489, P.x0, -7, P.x1, -1, 0.015);
+      dashes(0xffffff, P.x0 + 2, P.x1 - 2, -4, 2.5, 2, 0.18, 0.025);
+      rect(0xffffff, P.x0, -1.2, P.x1, -1, 0.025); rect(0xffffff, P.x0, -7, P.x1, -6.8, 0.025); rect(0xe8634a, P.x0, -7.6, P.x1, -7.35, 0.025);
+      stands.forEach(standMarks);
+      flush();
+      const tl2 = []; for (let x = L.laneX[1] + 10; x <= P.conn; x += 10) tl2.push([x, L.taxiwayZ - 5.8], [x, L.taxiwayZ + 5.8]); lightsAlong(0x5aa0ff, tl2);
+      // pirbyggnaden: lägre och glasigare än huvudterminalen
+      const bx = (P.t0 + P.t1) / 2, bw = P.t1 - P.t0;
+      const pb = new T.Group(); pb.position.set(bx, 0, 7); add(pb); W.occluders.push(pb);
+      at(rbox(bw, 8, 14, 0xf4efe6, pb, 0.6), 0, 4, 0);
+      at(rbox(bw - 4, 4.6, 0.7, 0x7fd3f0, pb, 0.25), 0, 4.6, -7.1);
+      for (let x = -bw / 2 + 3; x <= bw / 2 - 3; x += 5) at(rbox(0.6, 6, 1.1, 0x2e3a52, pb, 0.2), x, 4.4, -7.2);
+      at(rbox(bw + 2, 1, 16, 0x2e3a52, pb, 0.5), 0, 8.4, 0);
+      const ps = decal(textTex('PIR ' + P.id, 512, 110, '#2e3a52', '#f2b134', '700 80px "Fredoka", sans-serif'), 10, 2.1, pb); ps.position.set(-bw / 2 + 10, 7.4, -7.7); ps.rotation.y = Math.PI;
+      W.colliders.boxes.push({ x: bx, z: 7, hw: bw / 2, hd: 7, rot: 0 });
+      stands.filter((s) => s.contact).forEach((st) => bridgeFor(st, pb, bx, -8.2));
+      stands.forEach(mast);
+      tgt = scene;
+      return g;
+    };
     return W;
   }
 

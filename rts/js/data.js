@@ -44,7 +44,11 @@
     cities: { FJ: ['Östersund', 'Umeå', 'Visby', 'Kiruna', 'Luleå'], NV: ['Oslo', 'Köpenhamn', 'Berlin', 'London', 'Helsingfors'], SC: ['Palma', 'Alicante', 'Antalya', 'Chania', 'Rhodos'], BB: ['Riga', 'Tallinn', 'Vilnius', 'Gdańsk'], XX: ['Trondheim', 'Bergen', 'Åbo'], AU: ['New York', 'Toronto', 'Reykjavik'], CG: ['Leipzig', 'Liège', 'Billund'], VX: ['Genève', 'Nice', 'Monaco'], AM: ['Umeå', 'Uppsala', 'Göteborg'], LC: ['Barcelona', 'Budapest', 'Kraków', 'Porto'], LX: ['Paris', 'Milano', 'Zürich'] },
     layout: {
       terminal: { x0: -76, x1: 22 },
-      stands: [{ id: 'A1', x: -46, contact: true }, { id: 'A2', x: -10, contact: true }, { id: 'R1', x: 30, contact: false }],
+      // wide: tar widebody. pier: finns först när piren är byggd.
+      stands: [{ id: 'A1', x: -46, contact: true, wide: true }, { id: 'A2', x: -10, contact: true }, { id: 'R1', x: 30, contact: false, wide: true },
+        { id: 'B1', x: 70, contact: true, pier: 'B' }, { id: 'B2', x: 106, contact: true, wide: true, pier: 'B' }, { id: 'R2', x: 142, contact: false, pier: 'B' }],
+      connectors: [70],
+      piers: { B: { id: 'B', x0: 84, x1: 178, conn: 164, t0: 24, t1: 128 } },
       stopZ: -9, roadZ: [-2.6, -5.4], taxilaneZ: -50, taxiwayZ: -76, runwayZ: -116,
       runwayX: [-250, 250], laneX: [-100, 70], exit: { from: -10, to: 44 }, threshold: -220,
       depot: { x: -86, z: -10 }, busStop: { x: -16, z: -4 }, gates: [-120, 90],
