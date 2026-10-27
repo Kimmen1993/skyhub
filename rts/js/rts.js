@@ -572,8 +572,9 @@
       const cand = standsAvail().filter((s) => f.size !== 'L' || s.wide).sort((a, b) => (f.size === 'S' || f.size === 'J' || f.cargo ? a.contact - b.contact : b.contact - a.contact)).find((s) => standFree(s.id));
       const lead = leadMin(f, cand ? cand.id : 'A1');
       if (t < f.sta - lead) return;
-      if (cand && !runwayBusy(f) && !storming()) {
-        f.stand = cand.id; f.paths = Sim.arrivalPath(f.stand, f.size); f.phase = 'approach'; S.rwyT = S.t; setPath(f, f.paths.app);
+      if (cand && f.rwyQ == null) f.rwyQ = t;
+      if (cand && !runwayBusy(f) && !storming() && !depFirst(f)) {
+        f.rwyQ = null; f.stand = cand.id; f.paths = Sim.arrivalPath(f.stand, f.size); f.phase = 'approach'; S.rwyT = S.t; setPath(f, f.paths.app);
         radio('TORNET', `${D.callsign[f.al]} ${f.code.split(' ')[1]}, fri att landa. Ni får gate ${f.stand}.`);
       } else if (cand) {
         // gate finns, men banan är upptagen eller blixtlarm: kort väntan i kön, räknas inte som väntan i luften
@@ -613,9 +614,14 @@
       if (f.phase === 'approach') { f.phase = 'rollout'; setPath(f, f.paths.roll); }
       else if (f.phase === 'rollout') { f.phase = 'taxiIn'; setPath(f, f.paths.taxi); }
       else if (f.phase === 'taxiIn') { f.phase = 'stand'; f.mv = null; f.hd = 0; f.onBlock = t; initTasks(f); Sfx.clunk(); }
-      else if (f.phase === 'taxiOut') { f.phase = 'hold'; f.mv = null; }
+      else if (f.phase === 'taxiOut') { f.phase = 'hold'; f.mv = null; f.rwyQ = t; }
       else if (f.phase === 'takeoff') { f.phase = 'gone'; f.mv = null; }
     }
+  }
+  // Turordning på banan: den som väntat längst går först, nödfall alltid först.
+  function depFirst(f) {
+    if (f.emergency || f.amb) return false;
+    return S.flights.some((g) => g.phase === 'hold' && !g.mv && g.rwyQ != null && g.rwyQ <= f.rwyQ);
   }
   function blockedAhead(f) {
     const fx = Math.sin(f.hd), fz = Math.cos(f.hd);
