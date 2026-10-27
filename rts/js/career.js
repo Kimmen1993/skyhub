@@ -62,12 +62,26 @@
     { id: 'midsummer', t: 'Midsommarrusningen', d: 'Minst 80 % av stjärnorna på midsommarafton.', reward: 25000, ok: (r, pct) => r.midsummer && pct >= 80 },
     { id: 'winter', t: 'Vinterns hjälte', d: 'En vinterdag med minst 85 % av stjärnorna och ingen omdirigering.', reward: 20000, ok: (r, pct) => r.season === 'vinter' && pct >= 85 && !r.diverted },
     { id: 'storm', t: 'Stormjägaren', d: 'Minst 80 % av stjärnorna på en extrem dag.', reward: 30000, ok: (r, pct, R) => R.tier === 'extrem' && pct >= 80 },
-    { id: 'thirty', t: 'Trettio plan', d: 'Få iväg 30 plan på en dag.', reward: 30000, ok: (r) => r.done >= 30 },
+    { id: 'thirty', t: 'Trettio plan', d: 'Få iväg 30 plan på en dag (dagpass och kvällspass tillsammans).', reward: 30000, ok: (r, pct, R) => r.done + ((R.auto && R.auto.flights.length) || 0) >= 30 },
     { id: 'fleet', t: 'Redo för vintern', d: 'Äg en snöplog och en avisningsbil.', reward: 10000, ok: () => ['plow', 'deice'].every((k) => C.fleet.some((v) => v.kind === k && v.owned)) },
     { id: 'staff10', t: 'Stort lag', d: 'Ha tio anställda samtidigt.', reward: 10000, ok: () => C.staff.length >= 10 },
     { id: 'rep', t: 'Bäst i Norden', d: 'Nå rykte 100.', reward: 25000, ok: () => C.rep >= 99.5 },
   ];
   const standOk = (id) => { const st = D.layout.stands.find((s) => s.id === id); return st && (id !== 'R1' || C.built.R1) && (!st.pier || C.built['pier' + st.pier]); };
+  // Dagpasset spelar du själv (högst PASS_MAX plan). Resten flygs av kvällslaget, som räknas fram och blir sämre än du.
+  const PASS_MAX = 16, OVERTIME = 2500;
+  const autoCap = () => C.level < 1 ? 0 : Math.min(D.layout.stands.filter((s) => standOk(s.id)).length * 2, Math.floor(C.staff.length * 1.2));
+  // Vilka plan som flygs av dig, av kvällslaget och vilka som får ställas in i dag.
+  function plan() {
+    const prio = (c) => (c.trait === 'picky' ? 40 : 0) + (c.trait === 'fast' ? 30 : 0) + (c.size === 'L' ? 20 : 0) + c.pay / 1000;
+    const self = [], auto = [], over = [];
+    C.contracts.slice().sort((a, b) => prio(b) - prio(a)).forEach((c) => { for (let i = 0; i < c.perDay; i++) (c.mode === 'auto' ? auto : self).push(c); });
+    while (self.length > PASS_MAX) over.unshift(self.pop());
+    const rest = over.concat(auto), cap = autoCap();
+    // ryms inte allt: de som ställs in turas om från dag till dag
+    const k = rest.length > cap ? (C.day * 3) % rest.length : 0, rot = rest.slice(k).concat(rest.slice(0, k));
+    return { self, auto: rot.slice(0, cap), skip: rot.slice(cap), cap };
+  }
   const FIXED = 3000, PER_FLIGHT = 2500, STAR_PAY = 1000, SERVICE = 2500, BELT_SERVICE = 1500, SIGN = 2000;
   const QUOTES = [
     'Har lastat väskor sedan 1994. Har aldrig tappat en enda.', 'Snabb som en pushbacktraktor nedför. Vet inte vad en bandlastare är.',
@@ -111,12 +125,12 @@
   // ---------- en ny dag ----------
   function dayConfig() {
     const tier = TIERS[C.next || 'normal'], { s: season, n: sday } = seasonOf(C.day), mid = season.id === 'sommar' && sday === 3;
-    const list = [];
-    C.contracts.forEach((c) => { for (let i = 0; i < c.perDay; i++) list.push(c); });
-    // sommar: charterplan utan avtal, flest på midsommarafton
-    if (season.id === 'sommar' && C.day > 1) for (let i = 0; i < (mid ? 6 : 2); i++) list.push({ id: 'ch', al: 'SC', size: 'M', pay: 7500 });
+    const P = plan(), list = P.self.slice();
+    C.autoPlan = { auto: P.auto.map((c) => c.id), skip: P.skip.map((c) => c.id) };
+    // sommar: charterplan utan avtal, flest på midsommarafton (bara om dagpasset har plats)
+    if (season.id === 'sommar' && C.day > 1) for (let i = 0; i < (mid ? 6 : 2) && list.length < PASS_MAX; i++) list.push({ id: 'ch', al: 'SC', size: 'M', pay: 7500 });
     list.sort(() => Math.random() - 0.5);
-    const n = list.length, window = 30 + n * 14, start = 360;
+    const n = list.length, window = 30 + n * (n > 10 ? 12 : 14), start = 360;
     const flights = list.map((c, i) => {
       const t = start + 10 + Math.round(i * window / Math.max(1, n) + rnd(-3, 3));
       return [c.al, c.size, pad(Math.max(start + 8, t)), c.size === 'M' && C.rep > 45 && Math.random() < 0.12, c.id, { cargo: !!c.cargo, trait: c.trait || null }];
@@ -152,7 +166,36 @@
       belts: Object.assign({}, C.belts), built: Object.assign({}, C.built), noRoutines: C.level < 1,
     };
   }
-  function startDay() { SH.Rush.startDay(dayConfig()); hideOffice(); }
+  function startDay() { const cfg = dayConfig(); save(); SH.Rush.startDay(cfg); hideOffice(); }
+
+  // ---------- kvällspasset (räknas fram) ----------
+  // Kvällslaget gör ett hyfsat jobb, aldrig lika bra som du: övertid, slitage, missöden och sämre stjärnor.
+  function autoPass() {
+    const ap = C.autoPlan || { auto: [], skip: [] }; C.autoPlan = null;
+    const out = { flights: [], skip: ap.skip || [], income: 0, overtime: 0, mishap: 0, news: [], stars: 0 };
+    const cs = (ap.auto || []).map((id) => C.contracts.find((c) => c.id === id)).filter(Boolean);
+    if (!cs.length) { out.net = 0; return out; }
+    const cap = Math.max(1, autoCap()), load = cs.length / cap;
+    const skill = C.staff.reduce((a, w) => a + w.skill, 0) / Math.max(1, C.staff.length);
+    const veh = C.fleet.filter((v) => ['fuel', 'train', 'tug'].includes(v.kind) && v.wear < 80).length;
+    const q = clamp(0.3 + skill * 0.07 + Math.min(5, veh) * 0.03 - load * 0.2, 0.15, 0.75);
+    cs.forEach((c) => {
+      const x = Math.random(), stars = x < q * 0.4 ? 3 : x > 1 - (1 - q) * 0.45 ? 1 : 2;
+      out.flights.push({ cid: c.id, size: c.size, stars, auto: true }); out.stars += stars;
+      out.income += c.pay + stars * STAR_PAY * 0.6; out.overtime += OVERTIME;
+      const v = pick(C.fleet.filter((y) => ['fuel', 'train', 'tug'].includes(y.kind)) || []); if (v) v.wear = Math.min(100, v.wear + 2);
+      if (Math.random() < 0.08) {
+        const m = pick([['väska', 2000], ['buckla', 3000], ['försening', 0]]), nm = D.airlines[c.al].name;
+        if (m[0] === 'väska') out.news.push(`Kvällslaget tappade bort en väska från ${nm}. −${kr(m[1])}`);
+        else if (m[0] === 'buckla') out.news.push(`Kvällslaget backade in i ett staket med en tankbil. −${kr(m[1])}`);
+        else { out.news.push(`${nm} blev sena i kvällspasset, pushbacken dröjde.`); c.sat = clamp(c.sat - 4, 0, 100); }
+        out.mishap += m[1];
+      }
+    });
+    if (load > 0.8) { C.staff.forEach((w) => (w.morale = clamp(w.morale - 3, 0, 100))); out.news.push('Kvällslaget gick på knäna. Moralen sjönk lite.'); }
+    out.net = Math.round(out.income - out.overtime - out.mishap);
+    return out;
+  }
 
   // ---------- efter dagen ----------
   function dayEnd(r) {
@@ -161,6 +204,7 @@
     // kostnader
     R.wages = C.staff.reduce((a, w) => a + w.wage, 0); R.lease = C.fleet.reduce((a, v) => a + (v.owned ? 0 : FLEET[v.kind].lease), 0); R.fixed = FIXED + PER_FLIGHT * r.flights.filter((f) => f.cid != null).length + PROJECTS.reduce((a, p) => a + (C.built[p.id] ? p.upkeep : 0), 0);
     R.repair = 0;
+    const AP = autoPass(); R.auto = AP; R.fixed += PER_FLIGHT * AP.flights.length; C.money += AP.net;
     r.units.forEach((u) => {
       if (u.kind === 'worker') { const w = C.staff.find((x) => x.id === u.rid); if (w) { w.home = u.home; w.morale = clamp(w.morale + (u.exhausted ? -18 : 6), 0, 100); w.skill = Math.min(5, +(w.skill + 0.12).toFixed(2)); if (u.exhausted) R.news.push(`${w.name} jobbade tills hen var helt slut. Moralen sjönk.`); } }
       else { const v = C.fleet.find((x) => x.id === u.rid); if (v) { v.wear = Math.round(u.wear); v.home = u.home; if (u.broken) { R.repair += 3000; v.wear = Math.max(v.wear, 70); } } }
@@ -172,14 +216,17 @@
     const pct = r.maxStars ? r.stars / r.maxStars * 100 : 100;
     C.rep = clamp(C.rep + (pct - 70) / 5 - r.diverted * 3, 0, 100); R.rep = C.rep - rep0;
     C.contracts.forEach((c) => {
-      const fl = r.flights.filter((f) => f.cid === c.id);
+      const fl = r.flights.filter((f) => f.cid === c.id).concat(AP.flights.filter((f) => f.cid === c.id));
+      const sk = AP.skip.filter((id) => id === c.id).length;
+      if (sk) { c.sat = clamp(c.sat - 2 * sk, 0, 100); R.news.push(`${D.airlines[c.al].name} fick ställa in ${sk} plan i dag, du hade inte kapacitet.`); }
       if (!fl.length) return;
       const avg = fl.reduce((a, f) => a + f.stars, 0) / fl.length, div = fl.filter((f) => f.diverted).length;
       let d = (avg - 2) * 10 - div * 15;
-      if (c.trait === 'fast') { const slow = fl.filter((f) => f.turn != null && f.turn > 22).length; d -= slow * 12; if (slow) R.news.push(`${D.airlines[c.al].name} klagar: ${slow} av deras plan stod för länge vid gate.`); }
+      if (c.trait === 'fast') { const slow = fl.filter((f) => (f.turn != null && f.turn > 22) || (f.auto && f.stars < 3)).length; d -= slow * 12; if (slow) R.news.push(`${D.airlines[c.al].name} klagar: ${slow} av deras plan stod för länge vid gate.`); }
       if (c.trait === 'picky') { const bad = fl.filter((f) => f.stars < 3).length; d += bad ? -bad * 10 : 4; if (bad) R.news.push(`${D.airlines[c.al].name} är missnöjda: ${bad} av deras plan fick inte tre stjärnor.`); }
       c.sat = clamp(c.sat + d, 0, 100);
     });
+    AP.news.forEach((n) => R.news.push(n));
     if (r.contractor) R.news.push(`Entreprenörer (avisning, plogning) kostade ${kr(r.contractor)} i dag.`);
     // följder av dagens beslut och kriser
     const q = r.conseq || {};
@@ -235,18 +282,20 @@
       <div class="cash ${C.money < 0 ? 'neg' : ''}">${kr(C.money)}</div></header>
       <nav>${tabs.map(([k, n]) => `<button type="button" class="${tab === k ? 'on' : ''}" data-otab="${k}">${n}</button>`).join('')}</nav>
       <div class="obody">${({ report, goals, deals, staff, fleet, build, saveTab })[tab === 'save' ? 'saveTab' : tab]()}</div>
-      <footer><span class="note"><b>${esc(se.s.name)}, dag ${se.n} av 5</b>${se.s.id === 'sommar' && se.n === 3 ? ' · <b>Midsommarafton!</b>' : ''} · I morgon: <b class="tier ${C.next}">${esc(TIERS[C.next || 'normal'].name)}</b> · ${esc(TIERS[C.next || 'normal'].desc)} · ${C.contracts.reduce((a, c) => a + c.perDay, 0)} plan · ${C.staff.length} arbetare · bränsle ${C.fuel}</span>
+      <footer><span class="note"><b>${esc(se.s.name)}, dag ${se.n} av 5</b>${se.s.id === 'sommar' && se.n === 3 ? ' · <b>Midsommarafton!</b>' : ''} · I morgon: <b class="tier ${C.next}">${esc(TIERS[C.next || 'normal'].name)}</b> · ${esc(TIERS[C.next || 'normal'].desc)} · ${(() => { const P = plan(); return `${P.self.length} plan själv${P.auto.length ? ` + ${P.auto.length} i kvällspasset` : ''}${P.skip.length ? ` (${P.skip.length} ställs in)` : ''}`; })()} · ${C.staff.length} arbetare · bränsle ${C.fuel}</span>
       <button type="button" class="btn" data-act="menu">Huvudmeny</button><button type="button" class="btn y big" data-c="start" ${C.staff.length ? '' : 'disabled'}>Starta dag ${C.day}</button></footer>`;
   }
   function report() {
     const R = C.last;
     if (!R) return `<h3>Välkommen till ${esc(C.name)}!</h3><p>Du börjar som ramparbetare med tre kollegor, en tankbil, ett bagagetåg och en pushbacktraktor. Två flygbolag flyger hit: Fjällflyg och Nordvind.</p><p>Varje dag skapas av dina <b>avtal</b>. Gör ett bra jobb, så stiger ryktet, fler bolag vill flyga hit och du blir befordrad. Mellan dagarna sitter du här på kontoret och planerar: personal, fordon, service och bygge.</p><p>Första dagen har en guide. Lycka till!</p>`;
-    const pct = R.maxStars ? Math.round(R.stars / R.maxStars * 100) : 100, net = R.earned - R.wages - R.lease - R.fixed - R.repair;
+    const A = R.auto && R.auto.flights.length ? R.auto : null;
+    const pct = R.maxStars ? Math.round(R.stars / R.maxStars * 100) : 100, net = R.earned + (A ? A.net : 0) - R.wages - R.lease - R.fixed - R.repair;
     return `<div class="grid2"><div class="card"><h3>Dag ${R.day}${R.tier ? ' · ' + esc(TIERS[R.tier].name) : ''}</h3><div class="kv">
         <span>Plan som kom iväg</span><b>${R.done}</b><span>I tid</span><b>${R.ontime}</b><span>Omdirigerade</span><b>${R.diverted}</b>
         <span>Stjärnor</span><b>${R.stars} / ${R.maxStars} (${pct} %)</b><span>Rykte</span><b>${R.rep >= 0 ? '+' : ''}${R.rep.toFixed(1)}</b><span>Erfarenhet</span><b>+${R.xp} XP</b></div>
         ${R.promoted ? `<div class="promo">Befordrad till <b>${esc(LEVELS[R.promoted].t)}</b>! ${esc(LEVELS[R.promoted].unlock)}</div>` : ''}</div>
-      <div class="card"><h3>Ekonomi</h3><div class="kv"><span>Intjänat under dagen</span><b>${kr(R.earned)}</b><span>Löner</span><b>−${kr(R.wages)}</b><span>Leasing</span><b>−${kr(R.lease)}</b><span>Hyra, el och avgifter</span><b>−${kr(R.fixed)}</b>${R.repair ? `<span>Akutreparationer</span><b>−${kr(R.repair)}</b>` : ''}<span class="tot">Dagens resultat</span><b class="tot">${kr(net)}</b></div></div></div>
+      <div class="card"><h3>Ekonomi</h3><div class="kv"><span>Intjänat under dagpasset</span><b>${kr(R.earned)}</b>${A ? `<span>Kvällspasset (efter övertid)</span><b>${kr(A.net)}</b>` : ''}<span>Löner</span><b>−${kr(R.wages)}</b><span>Leasing</span><b>−${kr(R.lease)}</b><span>Hyra, el och avgifter</span><b>−${kr(R.fixed)}</b>${R.repair ? `<span>Akutreparationer</span><b>−${kr(R.repair)}</b>` : ''}<span class="tot">Dagens resultat</span><b class="tot">${kr(net)}</b></div></div></div>
+      ${A ? `<div class="card"><h3>🌙 Kvällspasset</h3><div class="kv"><span>Plan</span><b>${A.flights.length}</b><span>Stjärnor</span><b>${A.stars} / ${A.flights.length * 3} (${Math.round(A.stars / A.flights.length / 3 * 100)} %)</b><span>Intäkter</span><b>${kr(A.income)}</b><span>Övertid</span><b>−${kr(A.overtime)}</b>${A.mishap ? `<span>Missöden</span><b>−${kr(A.mishap)}</b>` : ''}</div><p class="note">Kvällslaget sköter planen själva. Det blir sällan tre stjärnor, och lyx- och lågprisbolag gillar det inte.</p></div>` : ''}
       ${R.goals && R.goals.length ? `<div class="card"><h3>Milstolpe klar!</h3><ul>${R.goals.map((g) => `<li><b>${esc(g.t)}</b>: ${esc(g.d)} <b>+${kr(g.reward)}</b></li>`).join('')}</ul></div>` : ''}
       ${R.log && R.log.length ? `<div class="card"><h3>Så blev dagen</h3>${R.mods && R.mods.length ? `<p class="note">Förutsättningar: ${R.mods.map(esc).join(' · ')}</p>` : ''}<ul>${R.log.map((n) => `<li>${esc(n)}</li>`).join('')}</ul></div>` : ''}
       ${R.news.length ? `<div class="card"><h3>Nyheter</h3><ul>${R.news.map((n) => `<li>${esc(n)}</li>`).join('')}</ul></div>` : ''}
@@ -257,10 +306,11 @@
     return `<p class="note">${n} av ${GOALS.length} milstolpar klara. Belöningen betalas ut efter dagen då målet nås.</p>` + GOALS.map((g) => `<div class="row"><div><b>${C.goals[g.id] ? '✔ ' : ''}${esc(g.t)}</b><small>${esc(g.d)}</small></div>${C.goals[g.id] ? `<span class="pill ok">Klar dag ${C.goals[g.id]}</span>` : `<span class="pill">${kr(g.reward)}</span>`}</div>`).join('');
   }
   function deals() {
-    const gates = D.layout.stands.filter((s) => standOk(s.id)).length, per = C.contracts.reduce((a, c) => a + c.perDay, 0);
-    return `<p class="note">${per} plan per dag på ${gates} gates. Fler avtal ger mer pengar, men dagarna blir tätare, och avgifterna växer med trafiken (${kr(PER_FLIGHT)} per plan och dag).</p>
+    const gates = D.layout.stands.filter((s) => standOk(s.id)).length, per = C.contracts.reduce((a, c) => a + c.perDay, 0), P = plan();
+    return `<div class="card"><h3>Dagens upplägg</h3><div class="kv"><span>🎮 Dagpasset (du spelar)</span><b>${P.self.length} av ${PASS_MAX} plan</b><span>🌙 Kvällslaget (räknas fram)</span><b>${C.level < 1 ? 'låses upp som arbetsledare' : `${P.auto.length} av ${P.cap} plan`}</b>${P.skip.length ? `<span style="color:#b8432f">Ställs in, ingen kapacitet</span><b style="color:#b8432f">${P.skip.length} plan</b>` : ''}</div>
+      <p class="note">${per} plan per dag på ${gates} gates. Kvällslaget klarar två plan per gate och lite fler än antalet anställda. Det kostar ${kr(OVERTIME)} i övertid per plan och blir sällan tre stjärnor. Fler gates och mer personal ger plats för fler plan. Avgifterna växer med trafiken (${kr(PER_FLIGHT)} per plan och dag).</p></div>
       <div class="grid2"><div><h3>Erbjudanden</h3>${C.offers.map((o) => `<div class="row"><i class="sw" style="background:${hex(D.airlines[o.al].color)}"></i><div><b>${esc(D.airlines[o.al].name)}</b><small>${C.contracts.some((c) => c.al === o.al && c.size === o.size) ? 'Utökning: ' : ''}${o.perDay} plan per dag · ${D.aircraft[o.size].model}${o.cargo ? ' (frakt)' : ''} · ${kr(o.pay)} per plan + upp till ${kr(STAR_PAY * 3)} i stjärnbonus · gäller till dag ${o.until}</small>${o.trait ? `<small style="color:#b8432f">${esc(TRAIT[o.trait])}</small>` : ''}${o.size === 'L' ? `<small style="color:#3f6fd8">Widebody: tar bara ${D.layout.stands.filter((s) => s.wide && standOk(s.id)).map((s) => s.id).join(', ') || 'A1'}, lång turnaround, 4 bränsle.</small>` : ''}</div><button type="button" class="btn y" data-c="accept:${o.id}">Ta avtalet</button><button type="button" class="btn" data-c="decline:${o.id}">Nej</button></div>`).join('') || '<p class="note">Inga erbjudanden just nu. Bättre rykte lockar fler bolag.</p>'}</div>
-      <div><h3>Dina avtal</h3>${C.contracts.map((c) => `<div class="row"><i class="sw" style="background:${hex(D.airlines[c.al].color)}"></i><div><b>${esc(D.airlines[c.al].name)}</b><small>${c.perDay} plan per dag · ${D.aircraft[c.size].model}${c.cargo ? ' (frakt)' : ''} · ${kr(c.pay)} per plan${c.trait ? ' · ' + (c.trait === 'fast' ? 'lågpris' : 'lyx') : ''}</small><span class="bar"><s style="width:${c.sat}%;background:${c.sat > 55 ? 'var(--mint)' : c.sat > 30 ? 'var(--sun)' : 'var(--coral)'}"></s></span><small>Nöjdhet ${Math.round(c.sat)} %</small></div>${confirm === 'cancel' + c.id ? `<button type="button" class="btn r" data-c="cancel:${c.id}">Säg upp</button><button type="button" class="btn" data-c="keep">Behåll</button>` : `<button type="button" class="btn" data-c="askcancel:${c.id}">Säg upp</button>`}</div>`).join('')}</div></div>`;
+      <div><h3>Dina avtal</h3>${C.contracts.map((c) => `<div class="row"><i class="sw" style="background:${hex(D.airlines[c.al].color)}"></i><div><b>${esc(D.airlines[c.al].name)}</b><small>${c.perDay} plan per dag · ${D.aircraft[c.size].model}${c.cargo ? ' (frakt)' : ''} · ${kr(c.pay)} per plan${c.trait ? ' · ' + (c.trait === 'fast' ? 'lågpris' : 'lyx') : ''}</small><small>I dag: ${[['🎮', P.self], ['🌙', P.auto], ['✖ inställt', P.skip]].map(([k, l]) => [k, l.filter((x) => x === c).length]).filter((x) => x[1]).map((x) => x[1] + ' ' + x[0]).join(' · ')}</small><span class="bar"><s style="width:${c.sat}%;background:${c.sat > 55 ? 'var(--mint)' : c.sat > 30 ? 'var(--sun)' : 'var(--coral)'}"></s></span><small>Nöjdhet ${Math.round(c.sat)} %</small></div>${C.level >= 1 ? `<button type="button" class="btn" data-c="mode:${c.id}" title="Vem flyger bolagets plan?">${c.mode === 'auto' ? '🌙 Kvällslaget' : '🎮 Själv'}</button>` : ''}${confirm === 'cancel' + c.id ? `<button type="button" class="btn r" data-c="cancel:${c.id}">Säg upp</button><button type="button" class="btn" data-c="keep">Behåll</button>` : `<button type="button" class="btn" data-c="askcancel:${c.id}">Säg upp</button>`}</div>`).join('')}</div></div>`;
   }
   const stars = (n) => '★'.repeat(Math.round(n)) + '<span style="opacity:.25">' + '★'.repeat(5 - Math.round(n)) + '</span>';
   function staff() {
@@ -308,6 +358,7 @@
     confirm = null;
     switch (cmd) {
       case 'start': startDay(); return;
+      case 'mode': { const c = C.contracts.find((x) => String(x.id) === arg); if (c) c.mode = c.mode === 'auto' ? 'self' : 'auto'; break; }
       case 'accept': { const o = C.offers.find((x) => String(x.id) === arg); if (o) { const ex = C.contracts.find((c) => c.al === o.al && c.size === o.size); if (ex) { ex.pay = Math.round((ex.pay * ex.perDay + o.pay * o.perDay) / (ex.perDay + o.perDay) / 100) * 100; ex.perDay += o.perDay; } else C.contracts.push({ id: o.id, al: o.al, size: o.size, cargo: o.cargo, trait: o.trait, perDay: o.perDay, pay: o.pay, sat: 65 }); C.offers = C.offers.filter((x) => x !== o); } break; }
       case 'decline': C.offers = C.offers.filter((x) => String(x.id) !== arg); break;
       case 'askcancel': confirm = 'cancel' + arg; break;
