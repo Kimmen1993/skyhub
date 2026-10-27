@@ -188,7 +188,7 @@
         const m = pick([['väska', 2000], ['buckla', 3000], ['försening', 0]]), nm = D.airlines[c.al].name;
         if (m[0] === 'väska') out.news.push(`Kvällslaget tappade bort en väska från ${nm}. −${kr(m[1])}`);
         else if (m[0] === 'buckla') out.news.push(`Kvällslaget backade in i ett staket med en tankbil. −${kr(m[1])}`);
-        else { out.news.push(`${nm} blev sena i kvällspasset, pushbacken dröjde.`); c.sat = clamp(c.sat - 4, 0, 100); }
+        else { out.news.push(`${nm} blev sena i kvällspasset, pushbacken dröjde.`); c.sat = clamp(c.sat - 1, 0, 100); }
         out.mishap += m[1];
       }
     });
@@ -216,14 +216,22 @@
     const pct = r.maxStars ? r.stars / r.maxStars * 100 : 100;
     C.rep = clamp(C.rep + (pct - 70) / 5 - r.diverted * 3, 0, 100); R.rep = C.rep - rep0;
     C.contracts.forEach((c) => {
-      const fl = r.flights.filter((f) => f.cid === c.id).concat(AP.flights.filter((f) => f.cid === c.id));
+      // dina egna plan avgör nöjdheten; kvällspasset ger bara ett litet plus eller minus
+      const fl = r.flights.filter((f) => f.cid === c.id), au = AP.flights.filter((f) => f.cid === c.id);
       const sk = AP.skip.filter((id) => id === c.id).length;
-      if (sk) { c.sat = clamp(c.sat - 2 * sk, 0, 100); R.news.push(`${D.airlines[c.al].name} fick ställa in ${sk} plan i dag, du hade inte kapacitet.`); }
-      if (!fl.length) return;
-      const avg = fl.reduce((a, f) => a + f.stars, 0) / fl.length, div = fl.filter((f) => f.diverted).length;
-      let d = (avg - 2) * 10 - div * 15;
-      if (c.trait === 'fast') { const slow = fl.filter((f) => (f.turn != null && f.turn > 22) || (f.auto && f.stars < 3)).length; d -= slow * 12; if (slow) R.news.push(`${D.airlines[c.al].name} klagar: ${slow} av deras plan stod för länge vid gate.`); }
-      if (c.trait === 'picky') { const bad = fl.filter((f) => f.stars < 3).length; d += bad ? -bad * 10 : 4; if (bad) R.news.push(`${D.airlines[c.al].name} är missnöjda: ${bad} av deras plan fick inte tre stjärnor.`); }
+      if (sk) { c.sat = clamp(c.sat - sk, 0, 100); R.news.push(`${D.airlines[c.al].name} fick ställa in ${sk} plan i dag, du hade inte kapacitet.`); }
+      if (!fl.length && !au.length) return;
+      let d = 0;
+      if (fl.length) {
+        const avg = fl.reduce((a, f) => a + f.stars, 0) / fl.length, div = fl.filter((f) => f.diverted).length;
+        d = (avg - 2) * 10 - div * 15;
+        if (c.trait === 'fast') { const slow = fl.filter((f) => f.turn != null && f.turn > 22).length; d -= slow * 12; if (slow) R.news.push(`${D.airlines[c.al].name} klagar: ${slow} av deras plan stod för länge vid gate.`); }
+        if (c.trait === 'picky') { const bad = fl.filter((f) => f.stars < 3).length; d += bad ? -bad * 10 : 4; if (bad) R.news.push(`${D.airlines[c.al].name} är missnöjda: ${bad} av deras plan fick inte tre stjärnor.`); }
+      }
+      if (au.length) {
+        const avg = au.reduce((a, f) => a + f.stars, 0) / au.length;
+        d += clamp((avg - 2.2) * 3, -2, 1) - (c.trait ? 1 : 0);
+      }
       c.sat = clamp(c.sat + d, 0, 100);
     });
     AP.news.forEach((n) => R.news.push(n));
@@ -295,7 +303,7 @@
         <span>Stjärnor</span><b>${R.stars} / ${R.maxStars} (${pct} %)</b><span>Rykte</span><b>${R.rep >= 0 ? '+' : ''}${R.rep.toFixed(1)}</b><span>Erfarenhet</span><b>+${R.xp} XP</b></div>
         ${R.promoted ? `<div class="promo">Befordrad till <b>${esc(LEVELS[R.promoted].t)}</b>! ${esc(LEVELS[R.promoted].unlock)}</div>` : ''}</div>
       <div class="card"><h3>Ekonomi</h3><div class="kv"><span>Intjänat under dagpasset</span><b>${kr(R.earned)}</b>${A ? `<span>Kvällspasset (efter övertid)</span><b>${kr(A.net)}</b>` : ''}<span>Löner</span><b>−${kr(R.wages)}</b><span>Leasing</span><b>−${kr(R.lease)}</b><span>Hyra, el och avgifter</span><b>−${kr(R.fixed)}</b>${R.repair ? `<span>Akutreparationer</span><b>−${kr(R.repair)}</b>` : ''}<span class="tot">Dagens resultat</span><b class="tot">${kr(net)}</b></div></div></div>
-      ${A ? `<div class="card"><h3>🌙 Kvällspasset</h3><div class="kv"><span>Plan</span><b>${A.flights.length}</b><span>Stjärnor</span><b>${A.stars} / ${A.flights.length * 3} (${Math.round(A.stars / A.flights.length / 3 * 100)} %)</b><span>Intäkter</span><b>${kr(A.income)}</b><span>Övertid</span><b>−${kr(A.overtime)}</b>${A.mishap ? `<span>Missöden</span><b>−${kr(A.mishap)}</b>` : ''}</div><p class="note">Kvällslaget sköter planen själva. Det blir sällan tre stjärnor, och lyx- och lågprisbolag gillar det inte.</p></div>` : ''}
+      ${A ? `<div class="card"><h3>🌙 Kvällspasset</h3><div class="kv"><span>Plan</span><b>${A.flights.length}</b><span>Stjärnor</span><b>${A.stars} / ${A.flights.length * 3} (${Math.round(A.stars / A.flights.length / 3 * 100)} %)</b><span>Intäkter</span><b>${kr(A.income)}</b><span>Övertid</span><b>−${kr(A.overtime)}</b>${A.mishap ? `<span>Missöden</span><b>−${kr(A.mishap)}</b>` : ''}</div><p class="note">Kvällslaget sköter planen själva. Det blir sällan tre stjärnor. Bolagens nöjdhet påverkas bara lite, mest av hur du sköter dagpasset.</p></div>` : ''}
       ${R.goals && R.goals.length ? `<div class="card"><h3>Milstolpe klar!</h3><ul>${R.goals.map((g) => `<li><b>${esc(g.t)}</b>: ${esc(g.d)} <b>+${kr(g.reward)}</b></li>`).join('')}</ul></div>` : ''}
       ${R.log && R.log.length ? `<div class="card"><h3>Så blev dagen</h3>${R.mods && R.mods.length ? `<p class="note">Förutsättningar: ${R.mods.map(esc).join(' · ')}</p>` : ''}<ul>${R.log.map((n) => `<li>${esc(n)}</li>`).join('')}</ul></div>` : ''}
       ${R.news.length ? `<div class="card"><h3>Nyheter</h3><ul>${R.news.map((n) => `<li>${esc(n)}</li>`).join('')}</ul></div>` : ''}
