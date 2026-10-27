@@ -168,7 +168,8 @@
   // En gate räknas som ledig om planet där redan håller på att skjutas ut.
   const standFree = (id) => S.spill[id] == null && !S.flights.some((f) => f.stand === id && ['approach', 'rollout', 'taxiIn', 'stand'].includes(f.phase));
   const leadMin = (f, stand) => { const p = Sim.arrivalPath(stand, f.size); return (Sim.pathTime(p.app) + Sim.pathTime(p.roll) + Sim.pathTime(p.taxi)) / D.SPEED * D.GMIN_PER_SEC; };
-  const runwayBusy = (f) => (S.birds && S.t < S.birds.until) || S.snow >= 1 || (S.drone && S.t < S.drone.until) || (S.fog && S.t < S.fog.until && S.t < (S.rwyT || -99) + 3) || S.flights.some((g) => g !== f && (['approach', 'rollout'].includes(g.phase) || (g.phase === 'takeoff' && g.y < 6)));
+  const appMin = (f) => Sim.pathTime(Sim.arrivalPath('A1', f.size).app) / D.SPEED * D.GMIN_PER_SEC;
+  const runwayBusy = (f) => (S.birds && S.t < S.birds.until) || S.snow >= 1 || (S.drone && S.t < S.drone.until) || (S.fog && S.t < S.fog.until && S.t < (S.rwyT || -99) + 3) || S.flights.some((g) => g !== f && (g.phase === 'approach' || (g.phase === 'rollout' && g.z < L.runwayZ + 14) || (g.phase === 'takeoff' && g.y < 6)));
   // Väder: 0 klart, 1 regn, 2 kraftigt regn och blåst, 3 åska (med korta blixtlarm då arbetet ute pausas)
   const WX = { name: ['Klart', 'Regn', 'Kraftigt regn', 'Åska'], snowName: ['Klart', 'Lätt snö', 'Snöfall', 'Snöstorm'], work: [1, 0.8, 0.6, 0.55], move: [1, 0.88, 0.72, 0.65] };
   const wxLevel = (t) => (S.wx || []).reduce((m, w) => (t >= w.from && t < w.to ? Math.max(m, w.lvl) : m), 0);
@@ -580,7 +581,9 @@
         // gate finns, men banan är upptagen eller blixtlarm: kort väntan i kön, räknas inte som väntan i luften
         return;
       } else {
-        if (f.phase === 'sched') { f.phase = 'holding'; f.holdSince = t; banner(`${f.code} väntar i luften. Ingen ledig gate!`, 'bad'); }
+        // planet hinner hit först strax före landningstiden; innan dess flyger det bara på
+        if (f.phase === 'sched' && t < f.sta - appMin(f)) return;
+        if (f.phase === 'sched') { f.phase = 'holding'; f.holdSince = t; f.rwyQ = t - 30; banner(`${f.code} väntar i luften. Ingen ledig gate!`, 'bad'); }
         f.holdMin = t - f.holdSince;
         if (f.holdMin > (f.amb ? 6 : f.emergency ? 11 : f.guest ? 10 : 18)) { const pen = f.amb ? 20000 : f.guest ? 5000 : 15000; f.phase = 'diverted'; if (f.guest) S.guestDiv = (S.guestDiv || 0) + 1; else S.diverted++; S.money -= pen; banner(`${f.code} fick leda om till en annan flygplats. −${kr(pen)}`, 'bad'); }
       }

@@ -187,7 +187,7 @@
     if (q.rep) C.rep = clamp(C.rep + q.rep, 0, 100);
     (q.news || []).forEach((n) => R.news.push(n));
     Object.entries(q.out || {}).forEach(([rid, d]) => { const w = C.staff.find((x) => x.id === +rid); if (w) w.out = C.day + d; });
-    if (r.press) { const d = clamp(r.press.good * 0.4 - r.press.bad * 0.8, -4, 4); C.rep = clamp(C.rep + d, 0, 100); R.news.push(d >= 0 ? `Lokaltidningen: "Flygplatsen går som en klocka." Ryktet +${d.toFixed(1)}.` : `Lokaltidningen: "Stressigt på plattan, ${r.press.bad} plan fick inte full service." Ryktet ${d.toFixed(1)}.`); }
+    if (r.press) { const d = r.press.good + r.press.bad === 0 ? -2 : clamp(r.press.good * 0.4 - r.press.bad * 0.8, -4, 4); C.rep = clamp(C.rep + d, 0, 100); R.news.push(r.press.good + r.press.bad === 0 ? `Lokaltidningen: "Inte ett enda plan kom iväg." Ryktet −2.` : d >= 0 ? `Lokaltidningen: "Flygplatsen går som en klocka." Ryktet +${d.toFixed(1)}.` : `Lokaltidningen: "Stressigt på plattan, ${r.press.bad} plan fick inte full service." Ryktet ${d.toFixed(1)}.`); }
     if (r.trial) { const a = AIRLINES[r.trial.al]; if (r.trial.ok && a) { C.offers.push({ id: nid(), al: r.trial.al, size: a.size, cargo: !!a.cargo, trait: a.trait || null, perDay: 1, pay: Math.round(a.base * 1.1 / 100) * 100, until: C.day + 4 }); R.news.push(`${D.airlines[r.trial.al].name} var nöjda med provflygningen och erbjuder ett avtal!`); } else { C.rep = clamp(C.rep - 2, 0, 100); R.news.push(`${D.airlines[r.trial.al].name} var inte imponerade av provflygningen.`); } }
     R.log = r.log || []; R.mods = r.mods || [];
     if (r.inspection != null) { C.rep = clamp(C.rep + (r.inspection ? 5 : -4), 0, 100); R.news.push(r.inspection ? 'Inspektionen blev godkänd. Ryktet steg.' : 'Inspektionen blev underkänd. Ryktet sjönk.'); }
