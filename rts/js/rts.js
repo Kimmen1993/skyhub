@@ -167,8 +167,15 @@
   const standsAvail = () => L.stands.filter((s) => (s.id !== 'R1' || S.built.R1) && (!s.pier || S.built['pier' + s.pier]) && !closedNow(s.id));
   // En gate räknas som ledig om planet där redan håller på att skjutas ut.
   const standFree = (id) => S.spill[id] == null && !S.flights.some((f) => f.stand === id && ['approach', 'rollout', 'taxiIn', 'stand'].includes(f.phase));
-  const leadMin = (f, stand) => { const p = Sim.arrivalPath(stand, f.size); return (Sim.pathTime(p.app) + Sim.pathTime(p.roll) + Sim.pathTime(p.taxi)) / D.SPEED * D.GMIN_PER_SEC; };
-  const appMin = (f) => Sim.pathTime(Sim.arrivalPath('A1', f.size).app) / D.SPEED * D.GMIN_PER_SEC;
+  // Slutlig inflygning från 260 m i stället för 360, och planet rullar av banan lite fortare.
+  function arrPath(stand, size) {
+    const p = Sim.arrivalPath(stand, size);
+    p.app = p.app.map((q, i) => (i === 0 ? Object.assign({}, q, { x: L.threshold - 260, y: 36 }) : q));
+    p.roll = p.roll.map((q, i) => (i === 1 ? Object.assign({}, q, { v: 24 }) : q));
+    return p;
+  }
+  const leadMin = (f, stand) => { const p = arrPath(stand, f.size); return (Sim.pathTime(p.app) + Sim.pathTime(p.roll) + Sim.pathTime(p.taxi)) / D.SPEED * D.GMIN_PER_SEC; };
+  const appMin = (f) => Sim.pathTime(arrPath('A1', f.size).app) / D.SPEED * D.GMIN_PER_SEC;
   const runwayBusy = (f) => (S.birds && S.t < S.birds.until) || S.snow >= 1 || (S.drone && S.t < S.drone.until) || (S.fog && S.t < S.fog.until && S.t < (S.rwyT || -99) + 3) || S.flights.some((g) => g !== f && (g.phase === 'approach' || (g.phase === 'rollout' && g.z < L.runwayZ + 14) || (g.phase === 'takeoff' && g.y < 6)));
   // Väder: 0 klart, 1 regn, 2 kraftigt regn och blåst, 3 åska (med korta blixtlarm då arbetet ute pausas)
   const WX = { name: ['Klart', 'Regn', 'Kraftigt regn', 'Åska'], snowName: ['Klart', 'Lätt snö', 'Snöfall', 'Snöstorm'], work: [1, 0.8, 0.6, 0.55], move: [1, 0.88, 0.72, 0.65] };
@@ -574,8 +581,9 @@
       const lead = leadMin(f, cand ? cand.id : 'A1');
       if (t < f.sta - lead) return;
       if (cand && f.rwyQ == null) f.rwyQ = t;
-      if (cand && !runwayBusy(f) && !storming() && !depFirst(f)) {
-        f.rwyQ = null; f.stand = cand.id; f.paths = Sim.arrivalPath(f.stand, f.size); f.phase = 'approach'; S.rwyT = S.t; setPath(f, f.paths.app);
+      f.rwyReady = !!cand;
+      if (cand && !runwayBusy(f) && !storming() && S.rwyNext === f.id) {
+        f.rwyQ = null; f.rwyReady = false; S.rwyNext = null; f.stand = cand.id; f.paths = arrPath(f.stand, f.size); f.phase = 'approach'; S.rwyT = S.t; setPath(f, f.paths.app);
         radio('TORNET', `${D.callsign[f.al]} ${f.code.split(' ')[1]}, fri att landa. Ni får gate ${f.stand}.`);
       } else if (cand) {
         // gate finns, men banan är upptagen eller blixtlarm: kort väntan i kön, räknas inte som väntan i luften
@@ -607,7 +615,8 @@
       return;
     }
     if (!f.mv) {
-      if (f.phase === 'hold' && !runwayBusy(f) && !storming()) { f.phase = 'takeoff'; S.rwyT = S.t; setPath(f, Sim.takeoffPath()); Sfx.whoosh(); }
+      if (f.phase === 'hold') f.rwyReady = true;
+      if (f.phase === 'hold' && !runwayBusy(f) && !storming() && S.rwyNext === f.id) { f.rwyReady = false; S.rwyNext = null; f.phase = 'takeoff'; S.rwyT = S.t; setPath(f, Sim.takeoffPath()); Sfx.whoosh(); }
       return;
     }
     if (f.phase === 'pushback') return; // styrs av traktorn
@@ -621,10 +630,12 @@
       else if (f.phase === 'takeoff') { f.phase = 'gone'; f.mv = null; }
     }
   }
-  // Turordning på banan: den som väntat längst går först, nödfall alltid först.
-  function depFirst(f) {
-    if (f.emergency || f.amb) return false;
-    return S.flights.some((g) => g.phase === 'hold' && !g.mv && g.rwyQ != null && g.rwyQ <= f.rwyQ);
+  // Tornet: en enda kö till banan. Nödfall först, sedan plan som cirklar, sedan den som väntat längst.
+  function rwyPick() {
+    const q = S.flights.filter((f) => f.rwyReady && (f.phase === 'hold' ? !f.mv : ['sched', 'holding'].includes(f.phase)));
+    const rank = (f) => (f.emergency || f.amb ? 0 : f.phase === 'holding' ? 1 : 2);
+    q.sort((a, b) => rank(a) - rank(b) || (a.rwyQ == null ? 1e9 : a.rwyQ) - (b.rwyQ == null ? 1e9 : b.rwyQ));
+    S.rwyNext = q.length ? q[0].id : null;
   }
   function blockedAhead(f) {
     const fx = Math.sin(f.hd), fz = Math.cos(f.hd);
@@ -1124,7 +1135,7 @@
     const storm = (S.wx || []).filter((w) => w.to > W0 && w.from < W1).map((w) => `<i class="wx${w.lvl}" title="${(S.winter ? WX.snowName : WX.name)[w.lvl]}" style="left:${X2(w.from)}%;width:${Math.max(2, X2(w.to) - X2(w.from))}%"></i>`).join('');
     setH($('fc'), `<h3>Inkommande</h3>${inbound.map((f) => {
       const eta = Math.round(f.sta - t), al = D.airlines[f.al];
-      const st = f.phase === 'holding' ? '<span class="pill bad">Väntar i luften</span>' : f.phase === 'sched' ? `<span class="pill">${eta > 0 ? eta + ' min' : 'nu'}</span>` : `<span class="pill ok">${f.stand}</span>`;
+      const st = f.phase === 'holding' ? '<span class="pill bad">Väntar i luften</span>' : f.phase === 'sched' ? `<span class="pill">${eta > 0 ? eta + ' min' : f.rwyReady ? (S.rwyNext === f.id ? 'Nästa på banan' : 'Kö till banan') : 'Ingen gate ledig'}</span>` : `<span class="pill ok">${f.stand}</span>`;
       return `<div class="in"><i class="sw" style="background:${hex(al.color)}"></i><b>${esc(f.code)}</b><span>${D.aircraft[f.size].model}${f.cargo ? ' · frakt' : ''}${f.vip ? ' · <em>VIP</em>' : ''}${f.emergency ? ' · <em>NÖD</em>' : ''}${f.amb ? ' · <em>AMBULANS</em>' : ''}</span>${st}</div>`;
     }).join('') || '<span class="note">Inga fler i dag.</span>'}
       <h3>Väder 45 min</h3><div class="wx">${storm}<span class="lbl" style="left:0">${fmt(W0)}</span><span class="lbl" style="right:0">${fmt(W1)}</span></div>`);
@@ -1315,7 +1326,7 @@
     for (let step = 0; step < (run && G.fast ? 2 : 1); step++) if (run && !S.ended) {
       S.t += dt * D.GMIN_PER_SEC;
       eventTick(); coachTick();
-      S.flights.forEach((f) => flightTick(f, dt));
+      rwyPick(); S.flights.forEach((f) => flightTick(f, dt));
       units.forEach((u) => unitTick(u, dt));
       spillTick(dt); dogTick(dt); snowTick(dt); ambTick(dt);
       const fixed = units.filter((u) => u.home).length; if (fixed) S.money -= fixed * D.routineCost * dt * D.GMIN_PER_SEC;
