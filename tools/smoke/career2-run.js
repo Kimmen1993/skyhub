@@ -43,6 +43,9 @@ try {
       if (i % 10 === 0) {
       if (R.incidents) R.incidents().forEach(function (inc) { if (inc.btn && inc.act && Math.random() < 0.5) R.quick(inc.act); });
         if (S.fuel <= 3 && !S.orders.length) R.orderFuel();
+        // gateschemat: planera plan som landar inom 40 min, och lös krockar
+        if (S.gp) S.flights.forEach(function (f) { if ((f.phase === 'sched' || f.phase === 'holding') && (!f.plan || f.towerPick || R.clash(f, f.plan)) && f.sta - S.t < 40) { var g = R.suggest(f); if (g) R.planGate(f, g); } });
+        if (S.tower && i % 400 === 0) { S.rwyMode = ['fair', 'arr', 'dep'][Math.floor(Math.random() * 3)]; }
         if (S.flights.some(function (f) { return f.phase === 'stand' && f.std < S.t - 12; }) && S.temps < 2 && S.money > 2500) click({ act: 'temp' });
         var free = R.units.filter(function (u) { return u.kind === 'worker' && (u.state === 'idle' || u.state === 'standby') && !u.sick; });
         var br = R.units.find(function (u) { return u.broken; });

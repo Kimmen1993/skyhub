@@ -28,6 +28,7 @@ måste de fyra första raderna (doctype/html/meta) tas bort först.
 - `./tools/run-smoke.sh <sökväg till three.min.js r128>` – hela spelet med riktig three.js och fejkad webbläsare
   (fångar krascher i grafik/UI-koden). Ladda ner three: https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js
 - Alla sidor behöver `[hidden] { display: none !important; }` i CSS (GitHub Pages har ingen reset).
+`./tools/run-gate-smoke.sh <three.min.js>` – gateschemat och tornet. `./tools/run-career2-smoke.sh <three.min.js>` – roboten spelar 24 karriärdagar.
 `./tools/run-simtest.sh` (använder macOS inbyggda jsc; node finns inte installerat).
 
 ## Riktning

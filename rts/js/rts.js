@@ -123,7 +123,7 @@
       stars: 0, maxStars: 0, done: 0, ontime: 0, diverted: 0, earned: 0, ended: false, broken: {}, radio: [], banner: null, started: false, nid: 100,
       spill: {}, birds: null, deck: [], dog: null, sec: null, strike: null, insp: null, career: !!day.career, cfg: day, beltWear: Object.assign({ A1: 10, A2: 10, R1: 5, B1: 5, B2: 5, R2: 5 }, day.belts || {}), temps: 0,
       season: day.season || null, winter: day.season === 'vinter', snow: 0, plowCo: null, coCost: 0,
-      closed: {}, spillCo: {}, fog: null, heat: false, pump: false, press: null, drone: null, dir: null, brief: null, dlog: [], conseq: { sat: {}, rep: 0, news: [], out: {} } };
+      gp: !!day.gatePlan, tower: !!day.tower, rwyMode: 'fair', closed: {}, spillCo: {}, fog: null, heat: false, pump: false, press: null, drone: null, dir: null, brief: null, dlog: [], conseq: { sat: {}, rep: 0, news: [], out: {} } };
     { // händelsekort: slumpas varje gång, så ingen dag blir den andra lik
       const types = (day.cardTypes || ['belt', 'spill', 'prm', 'sick', 'connect', 'birds', 'flat', 'strike', 'security', 'dog', 'inspection', 'ambulance']).slice().sort(() => Math.random() - 0.5), n = day.cards || 0, span = hm(day.end) - hm(day.start) - 55;
       for (let i = 0; i < n; i++) S.deck.push({ at: 16 + Math.round((i + 0.2 + Math.random() * 0.6) * span / n), type: types[i % types.length], fired: false, tries: 0 });
@@ -145,6 +145,7 @@
     W.grass.material.color.setHex(S.winter ? 0xe9eff3 : GRASS); if (W.flat[0x7cbf61]) W.flat[0x7cbf61].material.color.setHex(S.winter ? 0xdde6ec : 0x7cbf61); runwaySnow.material.opacity = 0; plowRing.visible = false;
     rain.material.color.setHex(S.winter ? 0xffffff : 0xcfe3f5); rain.material.size = S.winter ? 0.7 : 0.35;
     Object.keys(day.built || {}).forEach((id) => { if (day.built[id]) { S.built[id] = true; applyBuilt(id, true); } });
+    if (S.gp) S.flights.filter((f) => f.sta < hm(day.start) + 24).sort((a, b) => a.sta - b.sta).forEach((f) => { f.plan = suggest(f); f.towerPick = true; });
     droneG.visible = false;
     // morgongenomgång: dagens förutsättningar och ett erbjudande att ta ställning till
     if (day.mods || day.offer) {
@@ -167,6 +168,42 @@
   const standsAvail = () => L.stands.filter((s) => (s.id !== 'R1' || S.built.R1) && (!s.pier || S.built['pier' + s.pier]) && !closedNow(s.id));
   // En gate räknas som ledig om planet där redan håller på att skjutas ut.
   const standFree = (id) => S.spill[id] == null && !S.flights.some((f) => f.stand === id && ['approach', 'rollout', 'taxiIn', 'stand'].includes(f.phase));
+  // ---------- gateschema ----------
+  // Vad bolagen vill ha: A350 kräver bred plats, frakt och privatjet vill stå på fjärrplats, lyxbolag vägrar buss.
+  const PREF = (f) => (f.size === 'L' ? 'wide' : f.cargo || f.size === 'J' || f.trait === 'fast' ? 'remote' : 'contact');
+  const PREF_TXT = { wide: 'bred plats med brygga', remote: 'fjärrplats', contact: 'gate med brygga' };
+  const PREF_ICON = { wide: '⬛', remote: '🅿', contact: '🛂' };
+  function gateFit(f, s) {
+    if (f.size === 'L' && !s.wide) return { no: true, why: 'A350 får bara plats på en bred plats' };
+    if (f.trait === 'picky' && f.size !== 'J' && !s.contact) return { bad: true, why: `${D.airlines[f.al].name} vill inte att resenärerna åker buss` };
+    if (f.cargo && s.contact) return { bad: true, why: 'Frakt på en brygga tar en passagerargate' };
+    const p = PREF(f);
+    return (p === 'remote') === !s.contact ? { good: true } : {};
+  }
+  const ROW_PH = ['approach', 'rollout', 'taxiIn', 'stand', 'pushback'];
+  const onRow = (id) => S.flights.filter((g) => (['sched', 'holding'].includes(g.phase) ? g.plan === id : g.stand === id && ROW_PH.includes(g.phase)));
+  function span(f) {
+    const a = f.onBlock != null ? f.onBlock : f.sta;
+    let b = Math.max(f.std, a + (f.turnT || 30));
+    if (['stand', 'pushback'].includes(f.phase)) b = Math.max(b, S.t + (f.phase === 'pushback' ? 1 : 3));
+    return [a, b];
+  }
+  const clash = (f, id) => { const [a, b] = span(f); return onRow(id).some((g) => { if (g === f) return false; const [c, d] = span(g); return a < d && c < b; }); };
+  const shut = (f, id) => { const c = S.closed[id], [a, b] = span(f); return !!c && c.from < b && c.to > a; };
+  const gateRows = () => L.stands.filter((s) => (s.id !== 'R1' || S.built.R1) && (!s.pier || S.built['pier' + s.pier]));
+  // tornets förslag: bästa platsen som inte krockar (används för dagens första plan)
+  function suggest(f) {
+    const ok = gateRows().filter((s) => !gateFit(f, s).no).sort((a, b) => (gateFit(f, b).good ? 1 : 0) - (gateFit(f, a).good ? 1 : 0) - ((gateFit(f, b).bad ? 1 : 0) - (gateFit(f, a).bad ? 1 : 0)));
+    const free = ok.find((s) => !clash(f, s.id) && !shut(f, s.id)); return free ? free.id : null;
+  }
+  function planGate(f, id) {
+    const s = L.stands.find((x) => x.id === id);
+    if (!f || !s || !['sched', 'holding'].includes(f.phase)) return false;
+    const fit = gateFit(f, s); if (fit.no) { banner(fit.why, 'bad'); return false; }
+    if (shut(f, id)) { banner(`${id} är avstängd till ${fmt(S.closed[id].to)}.`, 'bad'); return false; }
+    f.plan = id; f.towerPick = false; Sfx.click(); return true;
+  }
+
   // Slutlig inflygning från 260 m i stället för 360, och planet rullar av banan lite fortare.
   function arrPath(stand, size) {
     const p = Sim.arrivalPath(stand, size);
@@ -577,12 +614,25 @@
   function flightTick(f, dt) {
     const t = S.t;
     if (f.phase === 'sched' || f.phase === 'holding') {
-      const cand = standsAvail().filter((s) => f.size !== 'L' || s.wide).sort((a, b) => (f.size === 'S' || f.size === 'J' || f.cargo ? a.contact - b.contact : b.contact - a.contact)).find((s) => standFree(s.id));
-      const lead = leadMin(f, cand ? cand.id : 'A1');
+      let cand;
+      // tornets eget val är flexibelt; ditt val håller tills planet cirklat för länge
+      const mine = S.gp && f.plan && !f.towerPick;
+      const taken = (id) => S.flights.some((g) => g !== f && g.towerPick && g.plan === id && g.rwyReady && ['sched', 'holding'].includes(g.phase) && g.id < f.id);
+      if (mine) { const s0 = standsAvail().find((x) => x.id === f.plan); cand = s0 && standFree(s0.id) ? s0 : null; }
+      if (!mine || (!cand && f.phase === 'holding' && t - f.holdSince > 6)) {
+        const planned = (id) => (f.emergency || f.amb) && S.flights.some((g) => g !== f && g.plan === id && !g.towerPick && ['sched', 'holding'].includes(g.phase) && g.sta - t < 25);
+        const c2 = standsAvail().filter((s) => f.size !== 'L' || s.wide).sort((a, b) => (f.size === 'S' || f.size === 'J' || f.cargo ? a.contact - b.contact : b.contact - a.contact)).sort((a, b) => planned(a.id) - planned(b.id)).find((s) => standFree(s.id) && !taken(s.id));
+        if (mine && c2) { banner(`Tornet flyttade ${f.code} till ${c2.id}, ${f.plan} blev aldrig ledig.`, 'bad'); f.towerPick = true; f.plan = c2.id; }
+        cand = c2 || cand;
+      }
+      const lead = leadMin(f, cand ? cand.id : f.plan || 'A1');
       if (t < f.sta - lead) return;
+      if (S.gp && cand && f.towerPick && f.plan !== cand.id) f.plan = cand.id;
+      if (S.gp && !f.plan && cand) { f.plan = cand.id; f.towerPick = true; banner(`Tornet gav ${f.code} plats ${cand.id}. Du hann inte planera den.`, 'info'); }
+      const circ = f.circle != null && t < f.circle;
       if (cand && f.rwyQ == null) f.rwyQ = t;
-      f.rwyReady = !!cand;
-      if (cand && !runwayBusy(f) && !storming() && S.rwyNext === f.id) {
+      f.rwyReady = !!cand && !circ;
+      if (cand && !circ && !runwayBusy(f) && !storming() && S.rwyNext === f.id) {
         f.rwyQ = null; f.rwyReady = false; S.rwyNext = null; f.stand = cand.id; f.paths = arrPath(f.stand, f.size); f.phase = 'approach'; S.rwyT = S.t; setPath(f, f.paths.app);
         radio('TORNET', `${D.callsign[f.al]} ${f.code.split(' ')[1]}, fri att landa. Ni får gate ${f.stand}.`);
       } else if (cand) {
@@ -591,7 +641,7 @@
       } else {
         // planet hinner hit först strax före landningstiden; innan dess flyger det bara på
         if (f.phase === 'sched' && t < f.sta - appMin(f)) return;
-        if (f.phase === 'sched') { f.phase = 'holding'; f.holdSince = t; f.rwyQ = t - 30; banner(`${f.code} väntar i luften. Ingen ledig gate!`, 'bad'); }
+        if (f.phase === 'sched') { f.phase = 'holding'; f.holdSince = t; f.rwyQ = t - 30; banner(f.plan ? `${f.code} cirklar: ${f.plan} är inte ledig. Flytta planet i gateschemat!` : `${f.code} väntar i luften. Ingen ledig gate!`, 'bad'); }
         f.holdMin = t - f.holdSince;
         if (f.holdMin > (f.amb ? 6 : f.emergency ? 11 : f.guest ? 10 : 18)) { const pen = f.amb ? 20000 : f.guest ? 5000 : 15000; f.phase = 'diverted'; if (f.guest) S.guestDiv = (S.guestDiv || 0) + 1; else S.diverted++; S.money -= pen; banner(`${f.code} fick leda om till en annan flygplats. −${kr(pen)}`, 'bad'); }
       }
@@ -633,8 +683,11 @@
   // Tornet: en enda kö till banan. Nödfall först, sedan plan som cirklar, sedan den som väntat längst.
   function rwyPick() {
     const q = S.flights.filter((f) => f.rwyReady && (f.phase === 'hold' ? !f.mv : ['sched', 'holding'].includes(f.phase)));
-    const rank = (f) => (f.emergency || f.amb ? 0 : f.phase === 'holding' ? 1 : 2);
+    const rank = (f) => (f.emergency || f.amb ? 0 : f.rwyBoost ? 1 : f.phase === 'holding' ? 1.5 : S.rwyMode === 'arr' ? (f.phase === 'hold' ? 3 : 2) : S.rwyMode === 'dep' ? (f.phase === 'hold' ? 2 : 3) : 2);
+    S.rwyQueue = q;
     q.sort((a, b) => rank(a) - rank(b) || (a.rwyQ == null ? 1e9 : a.rwyQ) - (b.rwyQ == null ? 1e9 : b.rwyQ));
+    // läge "landa först" och "starta först" går över till turordning om den andra sidan väntat för länge
+    if (S.rwyMode !== 'fair' && q.length) { const old = q.find((f) => rank(f) === 3 && S.t - (f.rwyQ || S.t) > 12); if (old && rank(q[0]) >= 2) { q.splice(q.indexOf(old), 1); q.unshift(old); } }
     S.rwyNext = q.length ? q[0].id : null;
   }
   function blockedAhead(f) {
@@ -656,6 +709,11 @@
     if (f.trial) { S.trialRes = n === 3 ? 'ok' : 'fail'; setTimeout(() => banner(n === 3 ? `${D.airlines[f.al].name} är imponerade av provflygningen!` : `${D.airlines[f.al].name} var inte nöjda med provflygningen.`, n === 3 ? 'good' : 'bad'), 2000); }
     if (f.stateVisit) { if (n === 3) pay += 25000; else { S.conseq.rep -= 5; S.conseq.news.push('Statsbesöket fick inte tre stjärnor. Det märktes i pressen.'); } setTimeout(() => banner(n === 3 ? 'Statsbesöket gick perfekt! +25 000 kr' : 'Statsbesöket blev inte perfekt. Ryktet tar skada.', n === 3 ? 'good' : 'bad'), 2000); }
     if (S.press) { if (n === 3) S.press.good++; else S.press.bad++; }
+    if (S.gp && f.stand && !f.emergency && !f.amb) {
+      const fit = gateFit(f, L.stands.find((x) => x.id === f.stand) || {});
+      if (fit.good && !f.towerPick) { pay += 1500; f.gateOk = true; }
+      if (fit.bad) { S.conseq.sat[f.al] = (S.conseq.sat[f.al] || 0) - 3; setTimeout(() => banner(`${fit.why}. ${D.airlines[f.al].name} är missnöjda.`, 'bad'), 2600); }
+    }
     S.money += pay; S.earned += pay; f.pay = pay; f.nstars = n;
     if (S.insp && S.insp.left > 0) { S.insp.left--; if (n < 3) S.insp.fails++; if (S.insp.left === 0) { S.insp.done = true; S.insp.ok = S.insp.fails === 0; setTimeout(() => banner(S.insp.ok ? 'Inspektionen godkänd! Ryktet stiger.' : `Inspektionen underkänd (${S.insp.fails} av 3 brister). Ryktet tar skada.`, S.insp.ok ? 'good' : 'bad'), 1800); if (!S.career) S.money += S.insp.ok ? 6000 : -4000; } }
     celebrate(f, n, pay, stars);
@@ -1133,7 +1191,9 @@
     const t = S.t, inbound = S.flights.filter((f) => ['sched', 'holding', 'approach', 'rollout', 'taxiIn'].includes(f.phase)).sort((a, b) => a.sta - b.sta).slice(0, 6);
     const W0 = t, W1 = t + 45, X2 = (v) => clamp((v - W0) / (W1 - W0) * 100, 0, 100);
     const storm = (S.wx || []).filter((w) => w.to > W0 && w.from < W1).map((w) => `<i class="wx${w.lvl}" title="${(S.winter ? WX.snowName : WX.name)[w.lvl]}" style="left:${X2(w.from)}%;width:${Math.max(2, X2(w.to) - X2(w.from))}%"></i>`).join('');
-    setH($('fc'), `<h3>Inkommande</h3>${inbound.map((f) => {
+    $('fc').classList.toggle('gp', !!S.gp);
+    if (S.gp) { setH($('fc'), gpHtml() + (S.tower ? towerHtml() : '') + `<h3>Väder 45 min</h3><div class="wx">${storm}<span class="lbl" style="left:0">${fmt(W0)}</span><span class="lbl" style="right:0">${fmt(W1)}</span></div>`); }
+    else setH($('fc'), `<h3>Inkommande</h3>${inbound.map((f) => {
       const eta = Math.round(f.sta - t), al = D.airlines[f.al];
       const st = f.phase === 'holding' ? '<span class="pill bad">Väntar i luften</span>' : f.phase === 'sched' ? `<span class="pill">${eta > 0 ? eta + ' min' : f.rwyReady ? (S.rwyNext === f.id ? 'Nästa på banan' : 'Kö till banan') : 'Ingen gate ledig'}</span>` : `<span class="pill ok">${f.stand}</span>`;
       return `<div class="in"><i class="sw" style="background:${hex(al.color)}"></i><b>${esc(f.code)}</b><span>${D.aircraft[f.size].model}${f.cargo ? ' · frakt' : ''}${f.vip ? ' · <em>VIP</em>' : ''}${f.emergency ? ' · <em>NÖD</em>' : ''}${f.amb ? ' · <em>AMBULANS</em>' : ''}</span>${st}</div>`;
@@ -1151,6 +1211,52 @@
     if (r) { $('radio').hidden = false; $('radio').innerHTML = `<em>${esc(r.who)}:</em> ${esc(r.msg)}`; $('radio').classList.toggle('fade', performance.now() - r.at > 9000); }
     const b = S.banner; $('banner').hidden = !b || performance.now() - b.at > 4500; if (b) { $('banner').textContent = b.txt; $('banner').className = 'fx panel ' + b.kind; }
     $('paused').hidden = !G.paused;
+  }
+  // Gateschemat: en rad per plats, staplar för plan som står där eller är planerade dit.
+  function gpHtml() {
+    const t = S.t, W0 = t - 6, W1 = t + 84, X = (v) => clamp((v - W0) / (W1 - W0) * 100, 0, 100);
+    const sf = G.gpSel != null && S.flights.find((f) => f.id === G.gpSel);
+    if (sf && !['sched', 'holding'].includes(sf.phase) && !ROW_PH.includes(sf.phase)) G.gpSel = null;
+    const movable = sf && ['sched', 'holding'].includes(sf.phase);
+    const ticks = []; for (let m = Math.ceil(W0 / 30) * 30; m < W1; m += 30) ticks.push(`<span style="left:${X(m)}%">${fmt(m)}</span>`);
+    const rows = gateRows().map((s) => {
+      const fl = onRow(s.id), cl = S.closed[s.id];
+      const fit = movable ? (shut(sf, s.id) ? { no: true } : gateFit(sf, s)) : null;
+      const bars = fl.map((f) => {
+        const [a, b] = span(f), bad = clash(f, s.id), al = D.airlines[f.al];
+        const st = f.phase === 'holding' ? ' air' : ['sched'].includes(f.phase) ? ' plan' : '';
+        return `<button type="button" class="gb${st}${bad ? ' bad' : ''}${f.id === G.gpSel ? ' sel' : ''}" data-gpf="${f.id}" style="left:${X(a)}%;width:${Math.max(4, X(b) - X(a))}%" title="${esc(f.code)} ${fmt(a)}–${fmt(b)}"><i style="background:${hex(al.color)}"></i>${esc(f.code)}</button>`;
+      }).join('');
+      const closed = cl && cl.to > W0 ? `<i class="gx" style="left:${X(cl.from)}%;width:${Math.max(2, X(cl.to) - X(cl.from))}%"></i>` : '';
+      const spill = S.spill[s.id] != null ? ' 🛢' : '';
+      return `<div class="gr${fit ? (fit.no ? ' no' : fit.bad ? ' meh' : fit.good ? ' yes' : ' ok') : ''}"><b>${s.id}${spill}</b><small>${s.wide ? 'bred ' : ''}${s.contact ? 'brygga' : 'buss'}</small><div class="gt"><button type="button" class="gh" data-gps="${s.id}" aria-label="Planera till ${s.id}"></button>${closed}${bars}<i class="now" style="left:${X(t)}%"></i></div></div>`;
+    }).join('');
+    const un = S.flights.filter((f) => ['sched', 'holding'].includes(f.phase) && !f.plan).sort((a, b) => a.sta - b.sta).slice(0, 8);
+    const chips = un.map((f) => {
+      const eta = Math.round(f.sta - t), urg = eta <= leadMin(f, 'A2') + 4, p = PREF(f);
+      return `<button type="button" class="gc${urg ? ' urg' : ''}${f.id === G.gpSel ? ' sel' : ''}" data-gpf="${f.id}"><i style="background:${hex(D.airlines[f.al].color)}"></i><b>${esc(f.code)}</b><small>${D.aircraft[f.size].model} · ${eta > 0 ? eta + ' min' : 'nu'} ${PREF_ICON[p]}${f.trait === 'picky' ? '✨' : ''}</small></button>`;
+    }).join('');
+    let info = '';
+    if (sf) {
+      const p = PREF(sf), [a, b] = span(sf);
+      info = `<div class="gi"><b>${esc(sf.code)}</b> ${D.aircraft[sf.size].model}${sf.cargo ? ' · frakt' : ''}${sf.trait === 'picky' ? ' · lyx' : sf.trait === 'fast' ? ' · lågpris' : ''} · ${fmt(a)}–${fmt(b)}<br>Vill ha: <b>${PREF_TXT[p]}</b>${sf.trait === 'picky' && sf.size !== 'J' ? ' (aldrig buss)' : ''}${movable ? ' · <span class="note">klicka på en rad</span>' : ''}
+        <span class="ga">${movable && sf.plan ? `<button type="button" class="btn" data-gpx="${sf.id}">Ta bort plan</button>` : ''}<button type="button" class="btn" data-gpc="1">Klar</button></span></div>`;
+    }
+    const st = (f) => f.phase === 'holding' ? 'cirklar' : f.rwyReady ? (S.rwyNext === f.id ? 'nästa på banan' : 'i kö till banan') : '';
+    const late = S.flights.filter((f) => f.phase === 'holding' || (f.phase === 'sched' && f.rwyReady && f.sta < t)).map((f) => `${esc(f.code)} ${st(f)}`).join(' · ');
+    return `<h3>Gateschema <small class="note">klicka plan, sedan plats · +1 500 kr för rätt plats</small></h3>
+      ${chips ? `<div class="gcs">${chips}</div>` : '<span class="note">Alla plan har en plats.</span>'}
+      ${info}<div class="gsch"><div class="gtk">${ticks.join('')}</div>${rows}</div>${late ? `<span class="note gl">✈ ${late}</span>` : ''}`;
+  }
+  // Tornet: kön till banan och lägen.
+  function towerHtml() {
+    const q = (S.rwyQueue || []).slice(0, 5), circ = S.flights.filter((f) => f.circle != null && S.t < f.circle && ['sched', 'holding'].includes(f.phase));
+    const occ = S.flights.find((f) => ['approach', 'takeoff'].includes(f.phase) || (f.phase === 'rollout' && f.z < L.runwayZ + 14));
+    const why = occ ? `${occ.code} ${occ.phase === 'takeoff' ? 'startar' : 'landar'}` : S.drone && S.t < S.drone.until ? 'drönare' : S.fog && S.t < S.fog.until ? 'dimma, glesare' : storming() ? 'blixtlarm' : 'ledig';
+    const M = [['fair', 'Turordning'], ['arr', 'Landa först'], ['dep', 'Starta först']];
+    return `<h3>Tornet <small class="note">bana 09: ${why}</small></h3><div class="tw">${M.map(([k, n]) => `<button type="button" class="btn${S.rwyMode === k ? ' y' : ''}" data-rwm="${k}">${n}</button>`).join('')}</div>
+      ${q.map((f, i) => `<div class="tq"><span>${i + 1}.</span><b>${f.phase === 'hold' ? '🛫' : '🛬'} ${esc(f.code)}</b><small>${Math.max(0, Math.round(S.t - (f.phase === 'holding' ? f.holdSince : f.rwyQ != null ? f.rwyQ : S.t)))} min${f.rwyBoost ? ' · förtur' : ''}</small>${i ? `<button type="button" class="btn" data-rwup="${f.id}" title="Ta före i kön">▲</button>` : '<i></i>'}${f.phase !== 'hold' && f.phase !== 'holding' && !f.emergency && !f.amb ? `<button type="button" class="btn" data-rwc="${f.id}" title="Be planet cirkla 5 min (800 kr)">⏸</button>` : '<i></i>'}</div>`).join('') || '<span class="note">Ingen kö.</span>'}
+      ${circ.length ? `<span class="note">Cirklar: ${circ.map((f) => `${esc(f.code)} till ${fmt(f.circle)}`).join(', ')}</span>` : ''}`;
   }
   function panel(focus) {
     const el = $('buildp'); el.hidden = !G.panel; if (!G.panel) return;
@@ -1199,7 +1305,7 @@
       if (miss.length) out.push({ key: 'miss' + f.id, icon: '⚠', title: `${f.code} vid ${f.stand} saknar: ${miss.join(', ')}`, need: `Avgång ${fmt(f.std)}. Planet står still tills det kommer.`, x: f.x, z: f.z, btn: 'Skicka', act: 'fill:' + f.id });
     });
     Object.values(ambs).filter((c) => c.st === 'wait').forEach((c) => { const f = S.flights.find((x) => x.id === c.fid); if (!f || f.phase !== 'stand') return; out.push({ key: 'amb' + f.id, icon: '🚑', title: `Ambulansen väntar vid grinden (${f.code})`, need: 'Skicka Follow me-bilen eller en arbetare som visar vägen till planet. Planet kan inte åka förrän patienten är överlämnad.', x: AMB_GATE.x, z: AMB_GATE.z, btn: busyOn((u) => u.job === 'escort' && u.assign === f.id) ? null : 'Eskortera', act: 'escort:' + f.id }); });
-    S.flights.filter((f) => f.phase === 'holding').forEach((f) => out.push({ key: 'hold' + f.id, icon: '✈', title: `${f.code} väntar i luften`, need: 'Ingen ledig gate. Få iväg ett plan från en gate så fort som möjligt.' }));
+    S.flights.filter((f) => f.phase === 'holding').forEach((f) => out.push({ key: 'hold' + f.id, icon: '✈', title: `${f.code} väntar i luften`, need: f.plan ? `${f.plan} är inte ledig. Flytta planet till en ledig plats i gateschemat, eller få iväg planet som står där.` : 'Ingen ledig gate. Få iväg ett plan från en gate så fort som möjligt.' }));
     return out;
   }
   const marks = new Map();
@@ -1289,7 +1395,7 @@
         fuel: S.fuel + S.orders.reduce((a, o) => a + o.units, 0), belts: S.beltWear, built: S.built,
         flights: S.flights.filter((f) => f.cid != null || f.emergency || f.amb).map((f) => ({ cid: f.cid, al: f.al, size: f.size, code: f.code, stars: f.nstars || 0, diverted: f.phase === 'diverted', pay: f.pay || 0, turn: f.offBlock && f.onBlock ? f.offBlock - f.onBlock : null })),
         inspection: S.insp && S.insp.done ? S.insp.ok : null, contractor: S.coCost, season: S.season, midsummer: !!S.cfg.midsummer,
-        conseq: S.conseq, press: S.press, trial: S.trialRes ? { al: S.trialAl, ok: S.trialRes === 'ok' } : null, log: S.dlog, mods: S.brief ? S.brief.mods.map((m) => m.icon + ' ' + m.name) : [],
+        conseq: S.conseq, gateOk: S.flights.filter((f) => f.gateOk).length, press: S.press, trial: S.trialRes ? { al: S.trialAl, ok: S.trialRes === 'ok' } : null, log: S.dlog, mods: S.brief ? S.brief.mods.map((m) => m.icon + ' ' + m.name) : [],
         units: units.filter((u) => u.rid != null).map((u) => ({ rid: u.rid, kind: u.kind, wear: u.wear, exhausted: !!u.exhausted, home: u.home, broken: !!u.broken })),
       });
       return;
@@ -1415,6 +1521,13 @@
     const lk = e.target.closest && e.target.closest('[data-look]'); if (lk && lk.dataset && lk.dataset.look) { const [x, z] = lk.dataset.look.split(':').map(Number); cam.x = x; cam.z = z; return; }
     const b = e.target.closest('button'); if (!b) return; const d = b.dataset; Sfx.init();
     if (d.inc) { quick(d.inc); return; }
+    if (d.gpf) { const id = +d.gpf; G.gpSel = G.gpSel === id ? null : id; Sfx.click(); hudTick(); return; }
+    if (d.gps) { const f = S.flights.find((x) => x.id === G.gpSel); if (f && planGate(f, d.gps)) G.gpSel = null; hudTick(); return; }
+    if (d.gpx) { const f = S.flights.find((x) => x.id === +d.gpx); if (f && ['sched', 'holding'].includes(f.phase)) f.plan = null; G.gpSel = null; hudTick(); return; }
+    if (d.gpc) { G.gpSel = null; hudTick(); return; }
+    if (d.rwm) { S.rwyMode = d.rwm; Sfx.click(); hudTick(); return; }
+    if (d.rwup) { const f = S.flights.find((x) => x.id === +d.rwup); if (f) { S.flights.forEach((g) => (g.rwyBoost = false)); f.rwyBoost = true; rwyPick(); radio('TORNET', `${f.code} får förtur på banan.`); } hudTick(); return; }
+    if (d.rwc) { const f = S.flights.find((x) => x.id === +d.rwc); if (f && f.phase === 'sched') { f.circle = S.t + 5; f.rwyBoost = false; S.money -= 800; S.conseq.sat[f.al] = (S.conseq.sat[f.al] || 0) - 1; radio('TORNET', `${D.callsign[f.al]} ${f.code.split(' ')[1]}, gå in i väntläge fem minuter.`); rwyPick(); } hudTick(); return; }
     if (d.home) { sel().forEach((u) => { if (d.home === 'none') u.home = null; else u.home = d.home; if (u.state === 'idle' && u.home) u.state = 'standby'; if (!u.home && u.state === 'standby') u.state = 'idle'; }); Sfx.good(); hudTick(); return; }
     if (d.unit) { const u = units.find((x) => x.id === +d.unit); if (u) { const now2 = performance.now(); if (G.lastUnitClick === u.id && now2 - G.lastUnitT < 380) { cam.x = u.x; cam.z = u.z; } G.lastUnitClick = u.id; G.lastUnitT = now2; if (e.shiftKey && u.sel) u.sel = false; else select([u], e.shiftKey); panel(); hudTick(); } return; }
     if (d.day) { closeModal(); newGame(+d.day); S.started = true; Sfx.ding(); radio('TORNET', `God morgon! ${S.day.name.split('· ')[1]} börjar. Första planet är på väg.`); }
@@ -1437,14 +1550,19 @@
   function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
   addEventListener('resize', resize); resize();
 
-  function startDay(cfg) { closeModal(); newGame(cfg); if (S.brief) { briefing(); return; } S.started = true; Sfx.ding(); radio('TORNET', `God morgon! ${cfg.name}. Första planet är på väg.`); }
+  function startDay(cfg) { closeModal(); newGame(cfg); if (S.brief) { briefing(); return; } S.started = true; Sfx.ding(); radio('TORNET', `God morgon! ${cfg.name}. Första planet är på väg.`); gpTip(); }
   function beginShift(take) {
     if (take != null && S.brief) S.brief.take = !!take;
     const o = S.brief && S.brief.offer;
     if (o && S.brief.take) { OFFERS[o.id].accept(o); logD(`${o.icon} Du tackade ja till: ${o.name.toLowerCase()}`); }
-    closeModal(); S.started = true; Sfx.ding(); radio('TORNET', `God morgon! ${S.cfg.name}. Första planet är på väg.`);
+    closeModal(); S.started = true; Sfx.ding(); radio('TORNET', `God morgon! ${S.cfg.name}. Första planet är på väg.`); gpTip();
   }
-  SH.Rush = { quick, incidents, startDay, beginShift, fireCrisis, surge, modal, closeModal, dayMenu, _cam: camera, get S() { return S; }, units, G, command, select, build, buy, orderFuel, ready, done, newGame, answer };
+  function gpTip() {
+    if (!S.cfg.gpTip) return;
+    setTimeout(() => radio('TORNET', 'Nytt: du planerar gaterna själv. Klicka ett plan i gateschemat till vänster, sedan en rad. Grön rad = den plats bolaget vill ha, +1 500 kr.'), 2500);
+    if (S.tower) setTimeout(() => radio('TORNET', 'Du styr också banan: välj läge, ta ett plan före med ▲ eller låt ett plan cirkla med ⏸.'), 11000);
+  }
+  SH.Rush = { planGate, suggest, clash: (f, id) => clash(f, id) || shut(f, id), gateFit, rwyPick, quick, incidents, startDay, beginShift, fireCrisis, surge, modal, closeModal, dayMenu, _cam: camera, get S() { return S; }, units, G, command, select, build, buy, orderFuel, ready, done, newGame, answer };
   newGame(1);
   if (SH.Career) SH.Career.mainMenu(); else dayMenu();
   requestAnimationFrame(frame);
